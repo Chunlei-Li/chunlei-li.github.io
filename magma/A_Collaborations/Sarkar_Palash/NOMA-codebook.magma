@@ -1,121 +1,153 @@
-p := 2;
-Fp := GF(p);
-n := 8;
-q := p^n;
-R := PolynomialRing(Fp, n);
-x := ["x" cat Sprintf("%o" , i):  i in [1.. n]];
-AssignNames(~R, x);
+p := 2; Fp := GF(p);
+n := 4;
+printf "n=%o\n", n;
+perm_list := Setseq(Permutations({1 .. n}));
+total := # perm_list;
 
-
-//Auxiliary functions
-function AddSeq(seq1, seq2, a, b) // a*seq1+b*seq2
-    return [ a*seq1[i] + b*seq2[i]: i in [1 .. #seq1]];
-end function;
-
-function FFT(tabf) // generalized FFT for F with length 2^n
-    p := 2;
-    zp := RootOfUnity(p);
-    if #tabf eq 1 then
-        return tabf;
-    else
-        N := #tabf div p;
-        div_tabf := [ [] : t in [0 .. p-1] ];  // store ft := f(x1, ..., xn-1, xn) with xn=t
-        div_DFT  := [ [] : t in [0 .. p-1] ];  // store the DFT of ft
-        for t in [0 .. p-1] do
-            div_tabf[t+1] := [tabf[i] : i in [ 1+t*N .. N+t*N ]] ; 
-            div_DFT[t+1]  := FFT(div_tabf[t+1]);  // calculate pFFT of ft 
-        end for; 
-        fDFT := [];
-        for an in [0 .. p-1] do
-            div_fDFT := [ 0 : i in [1 .. N] ]; // zp^(xn*an)*div_DFT
-            for t in [0 .. p-1] do
-                div_fDFT := AddSeq(div_fDFT, div_DFT[t+1], 1, zp^(t*an));
-            end for;
-            fDFT := fDFT cat div_fDFT;
-        end for;
-        //fDFT;
-        return fDFT;
+for i in [1 .. total] do
+    if perm_list[i] eq [1 .. n] then
+        perm_list[i] := perm_list[1];
+        perm_list[1] := [i: i in [1 .. n]];
     end if;
-end function;
-// Walsh Spectrum
-function WalshSpec(f) // p-fuction Tr(a*f)
-    CF<zp> := CyclotomicField(p);
-    tabf := [GF(p)!0 : i in [1 .. q] ];
-    for i in [1 .. q] do
-        s1 := Intseq(i-1,p);
-        s := s1 cat [0 : j in [1 .. n-#s1]];
-        tabf[i] := Evaluate(f, s);
-    end for;
-    //#tabf;
-    F := [zp^(IntegerRing()!tabf[i]) : i in [1 .. q]];
-    LAT:= FFT(F); 
-    return SequenceToMultiset(LAT);
-end function;
+end for;
+int2perm := AssociativeArray();
+for i in [1 .. total] do
+    int2perm[i] := perm_list[i];
+end for;
+perm2int := AssociativeArray();
+for i in [1..total] do
+    perm := perm_list[i];
+    perm2int[perm] := i;
+end for;
 
-isBent := function(f)
-    walshspec := MultisetToSet(WalshSpec(f));
-    max_abs := 0;
-    for item in walshspec do
-        max_abs := Max(max_abs, Abs(IntegerRing()!item));
-    end for;
-    return max_abs eq 2^(n div 2);
-end function;
-
-genBoolFunc := function(perm) // perm is a sequence of the permutation pi
-    p := perm;
-    f := 0;
-    for i in [1 .. n-1] do
-        f := f + R.p[i] * R.p[i+1];
-    end for;
-    return f;
-end function;
+for i in [1 .. total] do
+    printf "%o: %o\n", i, int2perm[i];
+end for;
 
 genMatrix := function(perm)
     p := perm;
     A := Matrix(GF(2), n, n, [<p[i], p[i+1], 1> : i in [1 .. n-1] ] cat [<p[i+1], p[i], 1> : i in [1 .. n-1]]);
     return A;
 end function;
+M0 := genMatrix(perm_list[1]);
 
-pi := [1 .. n];
-f := genBoolFunc(pi);
-//isBent(f);
-
-perm_list := SetToSequence(Permutations({1 .. n}));
-//perm_list;
-
-File := Open(Sprintf("NOMA-codebook_%o.txt",n), "w");
-fprintf File, "\n=============================================\n\nn=%o\n", n;
-
-for i in [1 .. 60] do
-p_list := [];
-perm_list_tmp := perm_list;
-while #perm_list_tmp gt 0 do
-    perm := Random(perm_list_tmp);
-    Exclude(~perm_list_tmp, perm);
-    //f_tmp := genBoolFunc(perm);
-    mat_perm := genMatrix(perm);
-    flag := 1;
-    for p in p_list do
-        //f := genBoolFunc(p);
-        mat_p := genMatrix(p);
-        //g := f + f_tmp;
-        if Rank(mat_perm + mat_p) ne n then
-            flag := 0;
-            break p;
-        end if;
+compPermutation := function(p1, p2)
+    return [p1[p2[i]]: i in [1 .. n]];
+end function;
+invPermutation := function(p)
+    inv_p := [1 .. n];
+    for i in [1 .. n] do
+        inv_p[p[i]] := i;
     end for;
-    if flag eq 1 then
-        Append(~p_list, perm);
-    end if;
-end while;
-printf "i=%o, size=%o\n", i, #p_list;
-fprintf File, "Test %o: size=%o\n", i, #p_list;
+    return inv_p;
+end function;
+filter := function(p)
+   M1 := genMatrix(p); 
+   return Rank(M1-M0) eq n;
+end function;
 
-for p in p_list do
-    //printf "%o\n", [p[i]-1 : i in [1 .. n]];
-    fprintf File, "%o\n", [p[i]-1 : i in [1 .. n]];
-end for;
+printAR := procedure(as_array)
+    printf "-----\n";
+    for key in Keys(as_array) do
+        printf "%2o:%o\n", key, as_array[key];
+    end for;
+end procedure;
 
+
+S := AssociativeArray();
+S[1] := { i: i in [2..total] | Rank(M0-genMatrix(int2perm[i])) eq n };
+for i in [2 .. total] do
+    S[ i ] := { perm2int[compPermutation(int2perm[i], int2perm[j])] : j in S[1] };
 end for;
+//printAR(S);
+
+//T := AssociativeArray();
+//for j in S[1] do
+    //tmp := S[1] meet S[j];
+    //if #tmp gt 1 then
+        //T[ {1, j} ] :=  tmp;
+    //end if;
+//end for;
+//printAR(S1);
+
+//transform := function(R) 
+    //R0 := [ ];
+    //R1 := AssociativeArray();
+    //for kset in Keys(R) do
+        //vset := R[kset];
+        //if #kset eq 0 then
+            //Include(~R0, kset);
+        //else
+            //for j in vset do
+                //tmp := vset meet S[j];
+                //new_kset := kset join {j};
+                //if #tmp eq 0 then
+                    //Include(~R0, new_kset);
+                //else
+                    //R1[ new_kset ] :=  tmp;
+                //end if;
+            //end for;
+        //end if;
+    //end for;
+    //return R0, R1;
+//end function;
+
+//res, R1 := transform(T);
+//while #R1 gt 0 do
+    //printf "size = %o\n", #R1;
+    //tmp := R1;
+    //R0, R1 := transform(tmp);
+    //for item in R0 do
+        //Include(~res, item);
+    //end for;
+//end while;
+
+//res := [ ];
+//for key in Keys(as_array) do
+    //Include(~res, Seqset(key));
+//end for;
+//#res;
+//for seq in Keys(T) do
+    //printf "%o: %o", seq, #T[seq];
+//end for;
+
+//transform := function(ass_array1)  // ass_array1[seq] = set
+    
+//end function;
+
+
+//S[1] eq S[13];
+
+//for i in [1 .. #S] do
+    //if perm_list[i] in S[1] then
+        //S1i := S[1] meet S[i];
+        //if #S1i gt 0 then
+            //printf "i=%2o: %o, %o, %o, %o\n", i, perm_list[1], perm_list[i], #S[i], #S1i;
+        //end if;
+    //end if;
+//end for;
+
+
+File := Open(Sprintf("NOMA-codebook_n%o.txt",n), "w");
+fprintf File, "\n=============================================\n\nn=%o\n", n;
+fprintAR := procedure(as_array)
+    fprintf File, "-----\n";
+    for key in Keys(as_array) do
+        fprintf File, "%2o:%o\n", key, as_array[key];
+    end for;
+end procedure;
+fprintAR(S);
+//for set in res do
+    //fprintf File, "\n----------\n";
+    //for i in set do
+        //fprintf File, "%o\n", int2perm[i];
+    //end for;
+////fprintf File, "%o\n", res;
+//end for;
+//fprintf File, "\nTotal number = %o\n", #res;
+delete File;
+
+printf "End of Program!\n";
+
 
 
