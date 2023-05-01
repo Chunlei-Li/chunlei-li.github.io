@@ -1,0 +1,80 @@
+clear;
+System("clear");
+Z<x> := PolynomialRing(IntegerRing());
+file:= Open("LA-code@res1.txt", "w");
+
+function CorrelationMag(seq1, seq2)  
+   l := #seq1;
+   corseq:= [&+[seq1[i]*seq2[i+t]: i in [1 .. l-t]]: t in [1..l-1]];
+   if seq1 ne seq2 then
+       cor2:= [&+[seq1[i+t]*seq2[i]: i in [1 .. l-t]]: t in [1..l-1]];
+       corseq := corseq cat cor2;
+    end if;
+   magnitude, pos := Max(corseq);
+   return magnitude;
+end function;
+
+function ParaRelation(N)
+    printf "******** N= %o\n", N;
+    flag := 1;
+    l := 0;
+    while flag eq 1 do
+        //fprintf file, "\n==========================p1=%2o==========================\n", l;
+        l +:= 1;
+        f := ((x-1)*x +2* l*x);
+        S := { };
+        flag := 0;
+        for d in [1 .. N-1] do
+            seq_d := [(Evaluate(f, t+d)-Evaluate(f,t)) div 2 : t in [0 .. N-1-d] ];
+            set_d := SequenceToSet(seq_d);
+            S1 := S meet set_d;
+            if #S1 ge 1 then
+                //printf  "Error!!! l=%o, d=%o: %o\n", l, d, S1;
+                flag := 1;
+                break;
+            else
+                S := S join set_d;
+            end if;
+        end for;
+        //print l;
+    end while;
+    f := ((x-1)*x +2*l*x);
+    seq_l:= [ [(Evaluate(f, t+d) - Evaluate(f, t)) div 2: t in [0 .. N-1-d] ]: d in [1 .. N-1] ]; 
+    //seq_l;
+    seq := [Evaluate(f, t) div 2: t in [1 .. N] ];
+    LAseq:= [0: i in [1 .. seq[N]] ];
+    for t in [1 .. N] do
+        LAseq[seq[t]] := 1;
+    end for;
+    //fprintf file, "\n============================================\n";
+    //fprintf file, "%o, %o, f=(%o)/2\n\nseq=%o\n", N, l, f, seq;
+    fprintf file, "N=%o, l=%o\n\n", N, l;
+    for d in [1 .. N-1] do
+        k := 0;
+        if d gt 1 then
+            v := seq_l[d][1];
+            k := 0;
+            while v lt seq_l[d-1][N-(d-1)-k] do
+                k := k + 1;
+            end while;
+        end if;
+        //fprintf file, "d=%-2o k=%-2o: %o\n", d, k, seq_l[d];
+        fprintf file, "d=%-2o k=%-2o, ", d, k;
+    end for;
+    est_l := (N div 2-5)*N div 2 + (N div 2) - 5;
+    printf "N=%o, l=%o, est_l=%o\n", N, l, est_l;
+    return l, LAseq;
+end function;
+
+
+for N in [6 .. 100] do
+    l, LAseq := ParaRelation(N);
+    //fprintf file, "Aperiodic Correlation Magnitude = %o\n", CorrelationMag(LAseq, LAseq);
+end for;
+
+delete(file);
+
+
+
+
+

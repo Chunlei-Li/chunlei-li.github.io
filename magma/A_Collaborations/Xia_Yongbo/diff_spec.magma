@@ -1,0 +1,39 @@
+p := 3;
+n := 5;
+FF<w> := GF(p^n);
+R<z> := PolynomialRing(FF);
+
+function eta(x) 
+    a := x^((p^n-1) div 2);
+    if a eq 0 then
+        return 0;
+    elif a eq 1 then
+        return 1;
+    else
+        return -1;
+    end if;
+end function;
+
+function Quadsum(poly)
+    return &+[eta(Evaluate(poly, a)): a in FF];
+end function;
+
+U := {u: u in FF | (eta(u+1) eq eta (u-1)) and (eta(u+1) eq eta(u)) };
+
+u := Random(U);
+for u in U do
+    f  := (u+1)*z; 
+    f1 := z^2 - (u+1)*z;
+    f2 := z^2 + (u-1)*z;
+    f3 := z^2 - z + u^2;
+
+    f13 :=  ((u+1)^2*z^2 + (u-1)^2*z + (1-u^2));
+    f23 :=  ((u-1)^2*z^2 + (u+1)^2*z + (1-u^2));
+
+    //set1 := { Evaluate(f1,a)/Evaluate(f2,a): a in FF | a notin {0, u+1, -u} }; 
+    //set2 := {t: t in FF | t ne 1 and eta(Evaluate(g1,t)) eq 1 }; 
+    //printf "u=%o: %o\n", u, set2 eq set1;
+    printf "%o, %o\n", [Quadsum(f1*f3), -Quadsum(f*f1*f3)], [Quadsum(f2*f3), Quadsum(f*f2*f3)];
+    
+end for;
+    //set1 eq set2;

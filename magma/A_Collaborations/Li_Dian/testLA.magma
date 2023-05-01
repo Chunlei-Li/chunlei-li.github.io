@@ -1,0 +1,24 @@
+
+
+N := 91; t := 7;
+
+v := 0;
+if (N-t) mod 2 eq 0 then
+    v := (N-t-2) div 2;
+else
+    v := (N-t-1) div 2;
+end if;
+
+printf "N=%o, t=%o, v=%o\n", N, t, v;
+
+for t0 in [1 , 2] do
+    printf "\n-------------\nt0=%o\n", t0;
+    for k in [-(v-2) .. (N-2-v)] do
+        beta := k^2;
+        r := (beta + t0) div (v+k);
+        w := beta - k - r*(v+k);
+        if r lt t-1 then
+            printf "e=%o, k=%o, r=%o: %o\n", t0, k, r, {v-i-w: i in [1 .. t-r-1]};
+        end if;
+    end for;
+end for;

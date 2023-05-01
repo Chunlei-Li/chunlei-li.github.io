@@ -1,0 +1,24 @@
+clear;
+
+p:=2;
+k:=6;
+m:=2*k;
+d1:=2^k-1;
+d2:=3*(2^k-1)+1;
+
+F<w>:=FiniteField(p^m);
+
+P:=[w^i: i in [0..(m-1)]];
+
+D:=[x:x in F|Trace(x^d1) eq 0 and x ne 0];
+
+M:=Matrix(FiniteField(p),m,#D,[<1,1,0>]);
+     
+ for i in [1..m] do
+     for j in [1..#D] do
+         M[i][j]:=Trace(P[i]*(D[j]^d2));
+     end for;
+end for;
+     G:=LinearCode(M);
+     Length(G),Dimension(G),MinimumDistance(G);
+     WeightDistribution(G);

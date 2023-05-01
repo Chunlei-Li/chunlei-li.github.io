@@ -1,0 +1,84 @@
+
+m=2
+
+ k=1
+
+ Boomerang=40
+
+ k=2
+
+ Boomerang=16
+
+m=3
+
+ k=1
+
+ Boomerang=64
+
+ k=2
+
+ Boomerang=64
+
+ k=3
+
+ Boomerang=64
+
+m=4
+
+ k=1
+
+ Boomerang=736
+
+ k=2
+
+ Boomerang=1216
+
+ k=3
+
+ Boomerang=736
+
+ k=4
+
+ Boomerang=256
+
+m=5
+
+ k=1
+
+ Boomerang=1024
+
+ k=2
+
+ Boomerang=1024
+
+ k=3
+
+ Boomerang=1024
+
+ k=4
+
+ Boomerang=1024
+
+ k=5
+
+ Boomerang=1024
+
+m=6
+
+ k=1
+
+ Boomerang=12160
+
+ k=2
+
+ Boomerang=4096
+
+ k=3
+
+ Boomerang=36352
+
+ k=4
+
+ Boomerang=4096
+
+ k=5

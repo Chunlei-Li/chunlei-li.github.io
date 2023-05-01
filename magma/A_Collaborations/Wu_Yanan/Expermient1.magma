@@ -1,0 +1,56 @@
+clear;
+
+A:=Open("Result_experiment1.xls","ab");
+
+p:=2;
+
+for m in [2..4] do
+
+    fprintf A,  "\nm=%o\n",m;
+    F:=FiniteField(p^m);
+    F0:=[x: x in F| x ne 0];
+    F1:=[x: x in F| Trace(x) eq 1];
+
+    t:=F1[1];
+
+    DF:={<x1,x2>: x1 in F, x2 in F};
+    DF0:={x: x in DF| <x[1],x[2]> ne <0,0>};
+    DF1:={x: x in DF| <x[1],x[2]> ne <1,0>};
+
+    add:=function(x,y)
+        return <x[1]+y[1],x[2]+y[2]>;
+    end function;
+
+    multi:=function(x,y)
+        return <x[1]*y[1]+x[2]*y[2]*t,x[1]*y[2]+x[2]*y[1]+x[2]*y[2]>;
+    end function;
+
+    for k in [1..m] do
+        fprintf A, "\n k=%o\n",k;
+        F:=function(x)
+            return <x[1]^(2^k+1), x[2]>;
+        end function;
+
+        for c in DF1 do
+            N:={};
+            for a in DF do
+                dif:={*add(F(add(x,a)),multi(c,F(x))):x in DF*};
+                L:={add(F(add(x,a)),F(x)):x in DF};
+                for b in L do
+                    t1:=Multiplicity(dif,b);
+                    Include(~N,t1);
+                end for;
+            end for;
+            fprintf A, "\n(c,c-diff)=(%o,%o)\n",c,Max(N);
+        end for;
+    end for;
+end for;
+
+Delete(A);
+
+printf "\nEnd of Program!\n";
+
+
+
+
+

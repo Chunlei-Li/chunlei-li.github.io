@@ -1,0 +1,174 @@
+System("clear");
+t := Cputime();
+// Initial parameters.
+q := 2;
+
+k := 1;
+r :=  5;
+d :=  7;
+// Codimension of S.
+c := 1;
+
+filename := Sprintf("Res_r%od%o.txt", r, d);
+
+File := Open(filename, "w");
+printf "\nr=%o, d=%o\n", r, d;
+
+
+for t in [3 .. r+1] do
+
+fprintf File, "\n--------------------\nr=%o, d=%o, c=%o, t=%o\n\n", r,d,c,t;
+
+for i in [3 .. r*d] do
+	
+m := Floor(t*r*d/(t-1))+i;
+
+// So that  n-k = rd - c.
+n := r*d - c + k;
+
+TraditionalCounter := 0;
+NewAlgCounter := 0;
+
+// Seed for random function I am going to use later.
+//SetSeed(95);
+
+// Field and vector spaces needed.
+Fq := GF(q);
+Fqd<b> := GF(q^2);
+Fqm<w> := GF(q^m);
+
+
+// Fqm seens as Fq^m.
+VecFqm := VectorSpace(Fq, m);
+
+// Vector space where code lives (Fqm^n).
+Fqmn := VectorSpace(Fqm, n);
+
+ct := 0;
+function Test()
+	//counter := 0;
+	//for test in [1..5] do
+
+	// Supports of rank 2 for each row.
+	RowSupport := sub<VecFqm | [Random(VecFqm): i in [1..d]]>;
+	while Dimension(RowSupport) ne d do
+		RowSupport := sub<VecFqm | [Random(VecFqm): i in [1..d]]>;
+	end while;
+
+
+	FqmRowSupport := [Fqm ! ElementToSequence(a): a in RowSupport];
+	BasisRowSupport := [Fqm ! ElementToSequence(a): a in Basis(RowSupport)];
+
+	// Get inverses.
+	InvRowSupport := [a^(-1): a in FqmRowSupport |  a ne 0];
+
+	// Create low row-density parity check matrix.
+	H := Matrix(Fqm, n - k, n, [Fqm ! ElementToSequence(Random(RowSupport)): j in [1..n], i in [1..n-k]]);
+
+	function genSupp(U) // generate the span of a subset U of Fqm over Fq 
+		vec_V := [VecFqm ! ElementToSequence(u): u in U];
+		return  sub<VecFqm | vec_V>;
+	end function;
+	function extractSubspace(W) //extract the subspace inside W
+		w0 := Random(W);
+		return  (W meet {w0 + w: w in W});
+	end function;
+
+
+	// Generate error.
+	// Error support.
+	// Create a subspace  SuppE of (Fq)^m of dimension r.
+	e := [Random(VecFqm): i in [1 .. r]];
+	SuppE := sub<VecFqm | e>;
+	// // Check column support is really of dimension r.
+	while( Dimension(SuppE) lt r) do
+		e := [Random(VecFqm): i in [1 .. r]];
+		SuppE := sub<VecFqm | e>;
+	end while;
+
+	// Error support in Fqm.
+	FqmSuppE := {Fqm ! ElementToSequence(x): x in SuppE}; 
+
+	// Basis SuppE as Fqm elements.
+	// BasisSuppE := [Fqm ! ElementToSequence(e): e in Basis(SuppE)];
+
+	// Create an error.
+	e := Matrix(Fqm, 1, n, [Random(FqmSuppE): i  in [1..n]]);
+
+	// Compute syndrome.
+	s := e * Transpose(H);
+	// s;
+
+	// Syndrome vector space.
+	SuppS := genSupp(ElementToSequence(s));
+
+	// Force the dimension of SuppS to be n-k = rd-c.
+	while(Dimension(SuppS) lt r*d - c) do
+		e := Matrix(Fqm, 1, n, [Random(FqmSuppE): i  in [1..n]]);
+		s := e * Transpose(H);
+		SuppS := genSupp(ElementToSequence(s));
+	end while;
+
+	// FqmSuppS := [Fqm ! ElementToSequence(x): x in SuppS]; 
+
+	// New methods
+
+	S_invRowSupport := [ [a_inv*s[1][i] : i in [1..n-k]]: a_inv in InvRowSupport];
+
+	Fqm_S_invRowSupport := [genSupp(S_invRowSupport[i]): i in [1 .. q^d-1]];
+
+	// printf "Heavy loop starts.....\n";
+
+	E := {VecFqm | };
+	
+	tuples := []; t1 := 0;
+	guessE := sub<VecFqm | E>;
+	while (Dimension(guessE) lt r) and (t1 lt 500) do
+		tmp := { VecFqm | };
+		rnum := [Random({1 .. q^d-1}): i in [1 .. t]];
+		while #Seqset(rnum) ne t  do
+			rnum := [Random({1 .. q^d-1}): i in [1 .. t]];
+		end while;
+		//M := {* VecFqm | *};
+		if Seqset(rnum) notin tuples then	
+			R   := Fqm_S_invRowSupport[rnum[1]]; 
+			for i in [2 .. t] do
+				R := R meet Fqm_S_invRowSupport[rnum[i]]; 
+			end for;
+			//for x in R do
+				//Include(~M, x);
+			//end for;
+			// Multiplicities(M);
+			//for x in M do
+				//if Multiplicity(M,x) ge 1 then
+					//Include(~E, x);
+				//end if;
+			//end for;
+			Append(~tuples, Seqset(rnum));
+            guessE := guessE + R;
+		end if;
+		t1 := t1 + 1; 
+	end while;
+
+// printf "Number of intersecting steps: %o\n", t1;
+// printf "#E=%o, ", #E;
+	return (SuppE eq guessE);
+end function;
+
+total := 1000;
+ct := 0;
+for x in [1..total] do
+	if Test() then
+		ct +:= 1;
+	end if;
+end for;
+fprintf File, "m=%o, i%o\t success=%o\n", m, i, ct;
+
+
+
+end for;
+
+end for;
+
+printf "\n-------\nEnd of Program!\n";
+printf "Time cost=%o seconds\n", Cputime(t)/1000.0;

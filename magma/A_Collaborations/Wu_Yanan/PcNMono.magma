@@ -1,0 +1,50 @@
+load "../cryptocriteria.magma";
+
+
+System("clear");
+p := 2;
+
+File := Open("PcN_result.txt","a");
+
+function genCycltoLeader(n)
+    S := { 1 .. 2^n-2 }; 
+    T := [];
+    while #S gt 0 do
+        seq := SetToSequence(S);
+        i := seq[1];
+        Append(~T, i); 
+        coset := { i*(2^j) mod (2^n-1) : j in [0 .. n-1] };
+        S := S diff coset;
+    end while;
+    return T;
+end function;
+
+for n in [12 .. 35] do
+    q := p^n;
+    Fn<w> := FiniteField(q); 
+    mulFn := [w^i : i in [0 .. q-2]];
+    R<x>  := PolynomialRing(Fn);
+
+    fprintf File, "\n\n================  n=%o  ================\n\n", n;
+    drange := [d : d in genCycltoLeader(n) | GCD(d, q-1) eq 1];
+    dseq := [];
+    cseq := [];
+    for d in drange do
+        for c in [w^i : i in [2 .. q-2]] do
+            aSet := {1};
+            if isPcN(x^d, c, aSet) then
+                Append(~dseq, d);
+                Append(~cseq, c);
+                break;
+            end if;
+        end for;
+    end for;
+    fprintf File, "%o\n%o\n", dseq, cseq;
+    printf "n=%o \t", n;
+end for;
+
+
+
+delete(File);
+
+printf "\nEnd of Program!\n";

@@ -1,0 +1,91 @@
+Systme("clear");
+load "/Home/ii/chunleil/magma/cryptocriteria.magma";
+//WalshSpec_a(polyF, a) // p-fuction Tr(a*f)
+
+p := 2; m := 8; n := 2*m; q := p^n;
+FF<w> := FiniteField(q);
+R<x> := PolynomialRing(FF);
+
+
+
+
+function WalshSpec(tabF) // p-fuction Tr(a*f)
+    //Auxiliary functions
+    function AddSeq(seq1, seq2, a, b) // a*seq1+b*seq2
+        return [ a*seq1[i] + b*seq2[i]: i in [1 .. #seq1]];
+    end function;
+
+    function FFT(tabf,p) // generalized p-ary FFT for F with length p^n
+        zp := RootOfUnity(p);
+        if #tabf eq 1 then
+            return tabf;
+        else
+            N := #tabf div p;
+            div_tabf := [ [] : t in [0 .. p-1] ];  // store ft := f(x1, ..., xn-1, xn) with xn=t
+            div_DFT  := [ [] : t in [0 .. p-1] ];  // store the DFT of ft
+            for t in [0 .. p-1] do
+                div_tabf[t+1] := [tabf[i] : i in [ 1+t*N .. N+t*N ]] ; 
+                div_DFT[t+1]  := FFT(div_tabf[t+1], p);  // calculate pFFT of ft 
+            end for; 
+            fDFT := [];
+            for an in [0 .. p-1] do
+                div_fDFT := [ 0 : i in [1 .. N] ]; // zp^(xn*an)*div_DFT
+                for t in [0 .. p-1] do
+                    div_fDFT := AddSeq(div_fDFT, div_DFT[t+1], 1, zp^(t*an));
+                end for;
+                fDFT := fDFT cat div_fDFT;
+            end for;
+            //fDFT;
+            return fDFT;
+        end if;
+    end function;
+    CF<zp> := CyclotomicField(p);
+    //tabF;
+    F := [zp^tabF[i] : i in [1 .. q]];
+    LAT_a:= FFT(F, p); 
+    return SequenceToMultiset(LAT_a);
+end function;
+
+function Linearity(tabF)
+    WS := WalshSpec(tabF);
+    //MultisetToSet(WS);
+    v, pos := Max([AbsoluteValue(IntegerRing()!a): a in MultisetToSet(WS)]);
+    return  v;
+end function;
+
+d := (2^m+2)*(2^m-1) div 3 + 1;
+perm_poly :=  x + x^d + x^(d*2^m);
+
+tab := [Evaluate(perm_poly, w^i): i in [1..q-1]];
+tab_inv := [0*w: i in [1 .. q-1]];
+for i in [1 .. q-1] do
+    e := Log(tab[i]); // p(w^i) := w^e;
+    //e;
+    if e ne 0 then
+        tab_inv[e] := w^i;
+    else
+        tab_inv[q-1] := w^i;
+    end if;
+end for; 
+
+//printf "%o\n%o\n", tab, tab_inv;
+for i  in [0 .. 2^m-2 by 3] cat [1 .. 2^m-2 by 3] cat [2 .. 2^m-2 by 3] do
+    alpha := w^(i*(2^m+1));
+    tabF := [IntegerRing()!0 : i in [1 .. q] ];
+    for i in [1 .. q] do
+        s1 := Intseq(i-1,p);
+        s := s1 cat [0 : j in [1 .. n-#s1]];
+        z := &+[s[j]*w^(j-1) : j in [1 .. n]]; // derive z from (z1,z2, ..., zn) w.r.t the basis 1, w, .., w^(n-1)
+        if z eq 0 then
+            tabF[i] := 0;
+        elif z eq 1 then
+            tabF[i] := Trace(alpha);
+        else
+            index := Log(z);
+            tabF[i] := Trace(alpha*tab_inv[index]^3); 
+        end if;
+    end for;
+    printf "%o\t %o: %o\n", i mod 3, alpha, Linearity(tabF) eq 2^m;
+end for;
+
+delete(File);

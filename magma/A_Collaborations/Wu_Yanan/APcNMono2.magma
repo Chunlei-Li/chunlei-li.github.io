@@ -1,0 +1,51 @@
+load "../cryptocriteria.magma";
+
+
+System("clear");
+p := 2;
+
+File2 := Open("APcNMon2_result.txt","w");
+printf "APcNMono2 running\n\n";
+
+function genCycltoLeader(n)
+    S := { 1 .. 2^n-2 }; 
+    T := [];
+    while #S gt 0 do
+        seq := SetToSequence(S);
+        i := seq[1];
+        Append(~T, i); 
+        coset := { i*(2^j) mod (2^n-1) : j in [0 .. n-1] };
+        S := S diff coset;
+    end while;
+    return T;
+end function;
+
+for n in [4 .. 25] do
+    q := p^n;
+    Fn<w> := FiniteField(q); 
+    mulFn := [w^i : i in [0 .. q-2]];
+    R<x>  := PolynomialRing(Fn);
+
+    drange := [ d: d in genCycltoLeader(n) | GCD(d, q-1) le 2 ]; // only consider the coset leaders d and d with gcd(d, q-1) le 2
+
+    fprintf File2, "\n\n================  n=%o  ================\n\n", n;
+    for d in drange do
+        cset := {};
+        for c in [w^i : i in [2 .. q-2] ] do
+            aSet := {1};
+            if isAPcN(x^d, c, aSet) then
+                Include(~cset, c);
+            end if;
+        end for;
+        if #cset ne 0 then
+            fprintf File2, "d=%o: %o\n", d, cset;
+        end if;
+    end for;
+    printf "n=%o \t", n;
+end for;
+
+
+
+delete(File2);
+
+printf "\nEnd of Program!\n";

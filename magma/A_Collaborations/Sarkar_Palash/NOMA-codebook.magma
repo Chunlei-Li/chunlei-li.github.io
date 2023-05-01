@@ -1,0 +1,121 @@
+p := 2;
+Fp := GF(p);
+n := 8;
+q := p^n;
+R := PolynomialRing(Fp, n);
+x := ["x" cat Sprintf("%o" , i):  i in [1.. n]];
+AssignNames(~R, x);
+
+
+//Auxiliary functions
+function AddSeq(seq1, seq2, a, b) // a*seq1+b*seq2
+    return [ a*seq1[i] + b*seq2[i]: i in [1 .. #seq1]];
+end function;
+
+function FFT(tabf) // generalized FFT for F with length 2^n
+    p := 2;
+    zp := RootOfUnity(p);
+    if #tabf eq 1 then
+        return tabf;
+    else
+        N := #tabf div p;
+        div_tabf := [ [] : t in [0 .. p-1] ];  // store ft := f(x1, ..., xn-1, xn) with xn=t
+        div_DFT  := [ [] : t in [0 .. p-1] ];  // store the DFT of ft
+        for t in [0 .. p-1] do
+            div_tabf[t+1] := [tabf[i] : i in [ 1+t*N .. N+t*N ]] ; 
+            div_DFT[t+1]  := FFT(div_tabf[t+1]);  // calculate pFFT of ft 
+        end for; 
+        fDFT := [];
+        for an in [0 .. p-1] do
+            div_fDFT := [ 0 : i in [1 .. N] ]; // zp^(xn*an)*div_DFT
+            for t in [0 .. p-1] do
+                div_fDFT := AddSeq(div_fDFT, div_DFT[t+1], 1, zp^(t*an));
+            end for;
+            fDFT := fDFT cat div_fDFT;
+        end for;
+        //fDFT;
+        return fDFT;
+    end if;
+end function;
+// Walsh Spectrum
+function WalshSpec(f) // p-fuction Tr(a*f)
+    CF<zp> := CyclotomicField(p);
+    tabf := [GF(p)!0 : i in [1 .. q] ];
+    for i in [1 .. q] do
+        s1 := Intseq(i-1,p);
+        s := s1 cat [0 : j in [1 .. n-#s1]];
+        tabf[i] := Evaluate(f, s);
+    end for;
+    //#tabf;
+    F := [zp^(IntegerRing()!tabf[i]) : i in [1 .. q]];
+    LAT:= FFT(F); 
+    return SequenceToMultiset(LAT);
+end function;
+
+isBent := function(f)
+    walshspec := MultisetToSet(WalshSpec(f));
+    max_abs := 0;
+    for item in walshspec do
+        max_abs := Max(max_abs, Abs(IntegerRing()!item));
+    end for;
+    return max_abs eq 2^(n div 2);
+end function;
+
+genBoolFunc := function(perm) // perm is a sequence of the permutation pi
+    p := perm;
+    f := 0;
+    for i in [1 .. n-1] do
+        f := f + R.p[i] * R.p[i+1];
+    end for;
+    return f;
+end function;
+
+genMatrix := function(perm)
+    p := perm;
+    A := Matrix(GF(2), n, n, [<p[i], p[i+1], 1> : i in [1 .. n-1] ] cat [<p[i+1], p[i], 1> : i in [1 .. n-1]]);
+    return A;
+end function;
+
+pi := [1 .. n];
+f := genBoolFunc(pi);
+//isBent(f);
+
+perm_list := SetToSequence(Permutations({1 .. n}));
+//perm_list;
+
+File := Open(Sprintf("NOMA-codebook_%o.txt",n), "w");
+fprintf File, "\n=============================================\n\nn=%o\n", n;
+
+for i in [1 .. 60] do
+p_list := [];
+perm_list_tmp := perm_list;
+while #perm_list_tmp gt 0 do
+    perm := Random(perm_list_tmp);
+    Exclude(~perm_list_tmp, perm);
+    //f_tmp := genBoolFunc(perm);
+    mat_perm := genMatrix(perm);
+    flag := 1;
+    for p in p_list do
+        //f := genBoolFunc(p);
+        mat_p := genMatrix(p);
+        //g := f + f_tmp;
+        if Rank(mat_perm + mat_p) ne n then
+            flag := 0;
+            break p;
+        end if;
+    end for;
+    if flag eq 1 then
+        Append(~p_list, perm);
+    end if;
+end while;
+printf "i=%o, size=%o\n", i, #p_list;
+fprintf File, "Test %o: size=%o\n", i, #p_list;
+
+for p in p_list do
+    //printf "%o\n", [p[i]-1 : i in [1 .. n]];
+    fprintf File, "%o\n", [p[i]-1 : i in [1 .. n]];
+end for;
+
+end for;
+
+

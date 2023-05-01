@@ -1,0 +1,22 @@
+clear;
+p := 2;
+m:=20;
+F<w>:=FiniteField(p^m);
+B:=[w^(2^i): i in [0..m-1]];
+r:=2^(m div 2)-1;
+U:=[x: x in F | x ne 0 and Trace(x^r) eq 0];
+d:=(3*r+1);
+
+M:=Matrix(FiniteField(p),m,#U,[<1,1,0>]);
+
+for i in [1..m] do
+    for j in [1..#U] do
+         M[i][j]:=Trace(B[i]*(U[j]^d));
+    end for;
+end for;
+C:=LinearCode(M);
+WeightDistribution(C);
+
+T:=Dual(C);
+NumberOfWords(T, 2);
+

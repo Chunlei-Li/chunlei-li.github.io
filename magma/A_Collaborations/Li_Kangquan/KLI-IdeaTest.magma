@@ -1,0 +1,35 @@
+n := 6;
+F2n<w> := FiniteField(2, n);
+
+//printf "Tr(1/w)=%o\n", Trace(1/w);
+
+R<x>  := PolynomialRing(F2n);
+poly1 := x^2+w*x;
+
+index_tab := [w^i : i in [1 .. 2^n-1]] cat [Zero(F2n)]; 
+
+function DLog(z) 
+    if z eq Zero(F2n) then
+        return 2^n;
+    elif z eq One(F2n) then
+        return 2^n-1;
+    else
+        return Log(z);
+    end if;
+end function;
+
+index_tab2 := [[i, DLog(w^i+w)]: i in [1 .. 2^n-1]] cat [[2^n, 1]];
+
+coeff_matrix := Matrix(GF(2), 2^n, 2^n, [0*i : i in [1 .. 2^(2*n)]]);
+for i in [1 .. 2^n] do
+    coeff_matrix[i, index_tab2[i,1]] := 1;
+    coeff_matrix[i, index_tab2[i,2]] := 1;
+end for;
+
+//print coeff_matrix;
+
+b_vec := Vector([GF(2)!1+0*i : i in [1 .. 2^n]]);
+
+f1, K := Solution(coeff_matrix, b_vec);
+
+print #{ Evaluate(poly1, index_tab[i])+f1[i] : i in [1 .. 2^n]};

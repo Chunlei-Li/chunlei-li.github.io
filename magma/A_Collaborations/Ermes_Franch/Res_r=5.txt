@@ -1,0 +1,394 @@
+Results: r=5,d=6
+
+--------------------
+r=5, d=6, c=1, t=3
+
+m=35	 success=0
+m=36	 success=0
+m=37	 success=0
+m=38	 success=0
+m=39	 success=0
+m=40	 success=0
+m=41	 success=0
+m=42	 success=1
+m=43	 success=193
+m=44	 success=619
+m=45	 success=841
+m=46	 success=915
+m=47	 success=940
+m=48	 success=948
+m=49	 success=944
+m=50	 success=939
+m=51	 success=947
+m=52	 success=942
+m=53	 success=940
+m=54	 success=946
+m=55	 success=964
+m=56	 success=973
+m=57	 success=982
+m=58	 success=993
+m=59	 success=999
+m=60	 success=996
+
+--------------------
+r=5, d=6, c=1, t=4
+
+m=35	 success=0
+m=36	 success=0
+m=37	 success=1
+m=38	 success=2
+m=39	 success=203
+m=40	 success=520
+m=41	 success=567
+m=42	 success=623
+m=43	 success=839
+m=44	 success=959
+m=45	 success=987
+m=46	 success=994
+m=47	 success=1000
+m=48	 success=1000
+m=49	 success=1000
+m=50	 success=1000
+m=51	 success=1000
+m=52	 success=1000
+m=53	 success=1000
+m=54	 success=1000
+m=55	 success=1000
+m=56	 success=1000
+m=57	 success=1000
+m=58	 success=1000
+m=59	 success=1000
+m=60	 success=1000
+
+--------------------
+r=5, d=6, c=1, t=5
+
+m=35	 success=5
+m=36	 success=10
+m=37	 success=25
+m=38	 success=56
+m=39	 success=577
+m=40	 success=890
+m=41	 success=947
+m=42	 success=947
+m=43	 success=978
+m=44	 success=995
+m=45	 success=999
+m=46	 success=1000
+m=47	 success=1000
+m=48	 success=1000
+m=49	 success=1000
+m=50	 success=1000
+m=51	 success=1000
+m=52	 success=1000
+m=53	 success=1000
+m=54	 success=1000
+m=55	 success=1000
+m=56	 success=1000
+m=57	 success=1000
+m=58	 success=1000
+m=59	 success=1000
+m=60	 success=1000
+
+--------------------
+r=5, d=6, c=1, t=6
+
+m=35	 success=13
+m=36	 success=10
+m=37	 success=119
+m=38	 success=338
+m=39	 success=821
+m=40	 success=973
+m=41	 success=996
+m=42	 success=997
+m=43	 success=998
+m=44	 success=1000
+m=45	 success=1000
+m=46	 success=1000
+m=47	 success=1000
+m=48	 success=1000
+m=49	 success=1000
+m=50	 success=1000
+m=51	 success=1000
+m=52	 success=1000
+m=53	 success=1000
+m=54	 success=1000
+m=55	 success=1000
+m=56	 success=1000
+m=57	 success=1000
+m=58	 success=1000
+m=59	 success=1000
+m=60	 success=1000
+
+--------------------
+r=5, d=6, c=1, t=7
+
+m=35	 success=19
+m=36	 success=11
+m=37	 success=247
+m=38	 success=654
+m=39	 success=925
+m=40	 success=994
+m=41	 success=999
+m=42	 success=999
+m=43	 success=1000
+m=44	 success=1000
+m=45	 success=1000
+m=46	 success=1000
+m=47	 success=1000
+m=48	 success=1000
+m=49	 success=1000
+m=50	 success=1000
+m=51	 success=1000
+m=52	 success=1000
+m=53	 success=1000
+m=54	 success=1000
+m=55	 success=1000
+m=56	 success=1000
+m=57	 success=1000
+m=58	 success=1000
+m=59	 success=1000
+m=60	 success=1000
+
+--------------------
+r=5, d=6, c=1, t=8
+
+m=35	 success=39
+m=36	 success=12
+m=37	 success=347
+m=38	 success=838
+m=39	 success=961
+m=40	 success=993
+m=41	 success=986
+m=42	 success=994
+m=43	 success=992
+m=44	 success=993
+m=45	 success=995
+m=46	 success=993
+m=47	 success=997
+m=48	 success=995
+m=49	 success=996
+m=50	 success=995
+m=51	 success=997
+m=52	 success=995
+m=53	 success=993
+m=54	 success=995
+m=55	 success=997
+m=56	 success=996
+m=57	 success=997
+m=58	 success=994
+m=59	 success=996
+m=60	 success=994
+
+Results: r=5,d=7
+
+--------------------
+r=5, d=7, c=1, t=3
+
+m=40	 success=0
+m=41	 success=0
+m=42	 success=0
+m=43	 success=0
+m=44	 success=0
+m=45	 success=0
+m=46	 success=0
+m=47	 success=0
+m=48	 success=0
+m=49	 success=0
+m=50	 success=62
+m=51	 success=452
+m=52	 success=776
+m=53	 success=929
+m=54	 success=965
+m=55	 success=969
+m=56	 success=974
+m=57	 success=977
+m=58	 success=976
+m=59	 success=973
+m=60	 success=983
+m=61	 success=974
+m=62	 success=976
+m=63	 success=967
+m=64	 success=976
+m=65	 success=983
+m=66	 success=992
+m=67	 success=995
+m=68	 success=998
+m=69	 success=1000
+m=70	 success=1000
+
+--------------------
+r=5, d=7, c=1, t=4
+
+m=40	 success=0
+m=41	 success=0
+m=42	 success=0
+m=43	 success=0
+m=44	 success=1
+m=45	 success=31
+m=46	 success=503
+m=47	 success=751
+m=48	 success=809
+m=49	 success=807
+m=50	 success=861
+m=51	 success=959
+m=52	 success=991
+m=53	 success=997
+m=54	 success=999
+m=55	 success=1000
+m=56	 success=1000
+m=57	 success=1000
+m=58	 success=1000
+m=59	 success=1000
+m=60	 success=1000
+m=61	 success=1000
+m=62	 success=1000
+m=63	 success=1000
+m=64	 success=1000
+m=65	 success=1000
+m=66	 success=1000
+m=67	 success=1000
+m=68	 success=1000
+m=69	 success=1000
+m=70	 success=1000
+
+--------------------
+r=5, d=7, c=1, t=5
+
+m=40	 success=0
+m=41	 success=0
+m=42	 success=6
+m=43	 success=98
+m=44	 success=227
+m=45	 success=484
+m=46	 success=898
+m=47	 success=977
+m=48	 success=989
+m=49	 success=990
+m=50	 success=997
+m=51	 success=1000
+m=52	 success=1000
+m=53	 success=1000
+m=54	 success=1000
+m=55	 success=1000
+m=56	 success=1000
+m=57	 success=1000
+m=58	 success=1000
+m=59	 success=1000
+m=60	 success=1000
+m=61	 success=1000
+m=62	 success=1000
+m=63	 success=1000
+m=64	 success=1000
+m=65	 success=1000
+m=66	 success=1000
+m=67	 success=1000
+m=68	 success=1000
+m=69	 success=1000
+m=70	 success=1000
+
+--------------------
+r=5, d=7, c=1, t=6
+
+m=40	 success=12
+m=41	 success=10
+m=42	 success=10
+m=43	 success=363
+m=44	 success=764
+m=45	 success=870
+m=46	 success=986
+m=47	 success=995
+m=48	 success=1000
+m=49	 success=1000
+m=50	 success=1000
+m=51	 success=1000
+m=52	 success=1000
+m=53	 success=1000
+m=54	 success=1000
+m=55	 success=1000
+m=56	 success=1000
+m=57	 success=1000
+m=58	 success=1000
+m=59	 success=1000
+m=60	 success=1000
+m=61	 success=1000
+m=62	 success=1000
+m=63	 success=1000
+m=64	 success=1000
+m=65	 success=1000
+m=66	 success=1000
+m=67	 success=1000
+m=68	 success=1000
+m=69	 success=1000
+m=70	 success=1000
+
+--------------------
+r=5, d=7, c=1, t=7
+
+m=40	 success=12
+m=41	 success=13
+m=42	 success=57
+m=43	 success=653
+m=44	 success=943
+m=45	 success=980
+m=46	 success=995
+m=47	 success=1000
+m=48	 success=1000
+m=49	 success=1000
+m=50	 success=1000
+m=51	 success=1000
+m=52	 success=1000
+m=53	 success=1000
+m=54	 success=1000
+m=55	 success=1000
+m=56	 success=1000
+m=57	 success=1000
+m=58	 success=1000
+m=59	 success=1000
+m=60	 success=1000
+m=61	 success=1000
+m=62	 success=1000
+m=63	 success=1000
+m=64	 success=1000
+m=65	 success=1000
+m=66	 success=1000
+m=67	 success=1000
+m=68	 success=1000
+m=69	 success=1000
+m=70	 success=1000
+
+--------------------
+r=7, d=5, c=1, t=8
+
+m=40	 success=0
+m=41	 success=6
+m=42	 success=5
+m=43	 success=2
+m=44	 success=0
+m=45	 success=208
+m=46	 success=754
+m=47	 success=900
+m=48	 success=888
+m=49	 success=902
+m=50	 success=896
+m=51	 success=897
+m=52	 success=893
+m=53	 success=900
+m=54	 success=909
+m=55	 success=907
+m=56	 success=889
+m=57	 success=896
+m=58	 success=884
+m=59	 success=915
+m=60	 success=899
+m=61	 success=909
+m=62	 success=892
+m=63	 success=916
+m=64	 success=900
+m=65	 success=900
+m=66	 success=915
+m=67	 success=901
+m=68	 success=897
+m=69	 success=894
+m=70	 success=913
+
