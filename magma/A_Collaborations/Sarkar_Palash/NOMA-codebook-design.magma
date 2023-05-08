@@ -1,0 +1,297 @@
+printAR := procedure(as_array)
+    printf "-----\n";
+    for key in Keys(as_array) do
+        printf "%2o:%o\n", key, as_array[key];
+    end for;
+end procedure;
+// Operations on Matrix and Permutations
+genMatrix := function(p)
+    n := #p;
+    A := Matrix(GF(2), n, n, [<p[i], p[i+1], 1> : i in [1 .. n-1] ] cat [<p[i+1], p[i], 1> : i in [1 .. n-1]]);
+    return A;
+end function;
+
+invPermutation := function(p)
+    n := #p;
+    inv_p := [1 .. n];
+    for i in [1 .. n] do
+        inv_p[p[i]] := i;
+    end for;
+    return inv_p;
+end function;
+revPermutation := function(p)
+    n := #p;
+    return [p[(n+1)-i]: i in [1..n]];
+end function;
+compPermutation := function(p1, p2)
+    n := #p1;
+    return [p1[p2[i]]: i in [1 .. n]];
+end function;
+combinePerm := function(p)
+    extPerm := function(perm_set)
+        perm_set1 := perm_set;
+        for perm in perm_set do
+            Include(~perm_set1, invPermutation(perm));
+            Include(~perm_set1, revPermutation(perm));
+        end for;
+        return perm_set1;
+    end function;
+    perm_set0 := {p};
+    perm_set1:= extPerm(perm_set0); 
+    while #perm_set1 gt # perm_set0 do
+        perm_set0 := perm_set1;
+        perm_set1 := extPerm(perm_set0);
+    end while;
+    return perm_set1;
+end function;
+// Given a set of permutations { p1, ..., pN } where each permutation pi satisfies the condition with identity permutation
+// the function generate the final set of permutations where any two satisfy the condition 
+genTargetSet := function(perm_set) 
+    //Auxiliary function 
+    // generate Matrix from permutation
+    n       := #Random(perm_set); // assuming all permutations have same size n
+    id_perm := [i: i in [1 .. n]];
+    M0      := genMatrix(id_perm);
+    perm_seq:= [id_perm];
+    for perm in perm_set do
+        Mi := genMatrix(perm);
+        if Determinant(M0+Mi) ne 0 then
+            Include(~perm_seq, perm); 
+        end if; 
+    end for;
+    N := #perm_seq; 
+    //printf "=========\nSize of input set = %o\n", #perm_seq;
+    perm2int := AssociativeArray();
+    int2perm := AssociativeArray();
+    for i in [1 .. N] do
+        perm2int[perm_seq[i] ] := i; 
+        int2perm[i] := perm_seq[i];
+    end for;
+    S := AssociativeArray(); 
+    S[1] := {i : i in [2 .. N] };
+    for i in [2 .. N] do
+        S[ i ] := { };
+        perm := int2perm[i]; 
+        Mi   := genMatrix(perm);
+        for perm1 in perm_seq do
+            //cond := compPermutation(invPermutation(perm), perm1) in [perm_seq[i] : i in [2 .. N]];
+            Mj := genMatrix(perm1); 
+            if Mj ne M0 then
+                if Determinant(Mi+Mj) ne 0 then
+                    Include(~S[i], perm2int[perm1]);
+                end if;
+            end if;
+        end for;
+    end for;
+    //printAR(S);
+    T := AssociativeArray();
+    for j in S[1] do
+        tmp := S[1] meet S[j];
+        if #tmp gt 1 then
+            T[ {1, j} ] :=  tmp;
+        else
+            T[ {1, j} ] := {};
+        end if;
+    end for;
+    //printAR(T);
+
+    iterative_transform := function(R) 
+        complete_set := { };
+        R1 := AssociativeArray();
+        for kset in Keys(R) do
+            vset := R[kset];
+            if #vset eq 0 then
+                Include(~complete_set, kset);
+            else
+                for j in vset do
+                    tmp := vset meet S[j];
+                    new_kset := kset join {j};
+                    if #tmp eq 0 then
+                        Include(~complete_set, new_kset);
+                    else
+                        R1[ new_kset ] :=  tmp;
+                    end if;
+                end for;
+            end if;
+        end for;
+        return complete_set, R1;
+    end function;
+
+    res, R1 := iterative_transform(T);
+    while #R1 gt 0 do
+        //printf "size = %o\n", #R1;
+        R := R1;
+        res1, R1 := iterative_transform(R);
+        res := res join res1;
+    end while;
+    res_perm := { };
+    k := 0; 
+    for int_set in res do
+        k := Max(k, #int_set); 
+    end for;
+    for int_set in res do
+        if #int_set eq k then
+            Include(~res_perm, { int2perm[i] : i in int_set });
+        end if;
+    end for;
+    return res_perm; 
+end function;
+
+
+extPermutation := function(p)
+     n := #p + 2;
+    id := [1 .. n+2];
+    M0 := genMatrix(id);
+    set_perm := {};
+    p1 := [n+2, n-1] cat p cat [n+1, n];
+    p2 := [n-1, n+1, n+2, n] cat p;
+    p3 := [n, n+2, n+1, n-1] cat p;
+    p4 := [n+1, n, n+2, n-1] cat p;
+    p5 := [n, n-1, n+2, n+1] cat p;
+    p6 := p cat [n+1, n+2, n-1, n];
+    p7 := [n, n+1, n-1 ,n+2] cat p;
+    p8 := [n, n+1, n-1] cat p cat [n+2];
+    p9 := [n+1, n, n+2] cat p cat [n-1];
+    p10:= [n+1, n+2, n-1] cat p cat [n];
+    perm_set := combinePerm(p1) join  combinePerm(p2) join combinePerm(p3) join combinePerm(p4) join combinePerm(p5) join 
+                combinePerm(p6) join  combinePerm(p7) join combinePerm(p8) join combinePerm(p9) join combinePerm(p10);
+    perm_set1 := {};
+    for perm in perm_set do
+        Include(~perm_set1, invPermutation(perm));
+    end for;
+    perm_set2 := {};
+    for perm in perm_set do
+        Include(~perm_set2, revPermutation(perm));
+    end for;
+    perm_set3 := {};
+    for perm in perm_set do
+        Include(~perm_set3, invPermutation(revPermutation(perm)));
+    end for;
+    perm_set := perm_set join perm_set1 join perm_set2 join perm_set3;
+    for perm in set_perm do
+        M1 := genMatrix(perm);
+        if Rank(M0+M1) ne n+2  then
+            printf "Error: %o\n", perm;
+        end if;  
+    end for;  
+    return perm_set;
+end function;
+
+procedure genCompleteSet(n)
+    perm_list := Setseq(Permutations({1 .. n})); 
+    total := # perm_list; 
+    for i in [1 .. total] do 
+        if perm_list[i] eq [1 .. n] then 
+            perm_list[i] := perm_list[1]; 
+            perm_list[1] := [i: i in [1 .. n]]; 
+        end if; 
+    end for; 
+    int2perm := AssociativeArray(); 
+    for i in [1 .. total] do 
+        int2perm[i] := perm_list[i]; 
+    end for; 
+    perm2int := AssociativeArray(); 
+    for i in [1..total] do 
+        perm := perm_list[i]; 
+        perm2int[perm] := i; 
+    end for; 
+    M0 := genMatrix(int2perm[1]);
+    complete_perm_set := { int2perm[i]: i in [2..total] | Determinant(M0-genMatrix(int2perm[i])) ne 0 };
+
+    File := Open(Sprintf("NOMA-codebook_id_n%o.txt", n), "w");
+    fprintf File, "The set of permutations satisfying condition with the identity permutation\n";
+    fprintf File, "n=%o, size=%o\n\n%o", n, #complete_perm_set, complete_perm_set;
+end procedure;
+
+
+procedure test_set(perm_set)
+        n:= #Random(perm_set);
+    File := Open(Sprintf("NOMA-codebook_%o_test.txt", n), "w");
+    fprintf File, "\n================== Before Extension: n = %o ===================\n\n", n;
+    fprintf File, "\nSet for n=%o: %o\n", n, perm_set;
+    fprintf File, "\nTarget set for n=%o: %o\n", n, genTargetSet(perm_set);
+    delete File;
+end procedure;
+
+
+procedure extend_set(perm_set)
+        n:= #Random(perm_set);
+    File := Open(Sprintf("NOMA-codebook_%o_ext.txt", n), "w");
+    fprintf File, "\nSet for n=%o: %o\n", n, perm_set;
+    fprintf File, "\n================== After  Extension: n = %o ===================\n\n", n+4;
+    perms := {};
+    ext_perm_set := {};
+    for p in perm_set do
+        ext_perm_set := ext_perm_set join extPermutation(p);
+        res_perms := Setseq(genTargetSet(ext_perm_set));
+        Include(~perms, p);
+        fprintf File, "\n-------\n";
+        //fprintf File, "permutations\n%o\n", perms;
+        //fprintf File, "ext_permutations\n%o\n", ext_perm_set;
+        if #res_perms gt 0 then
+            size, pos := Maximum([#res_perms[i] : i in [1 .. #res_perms] ]);
+            fprintf File, "One of largest sets of permutations\n%o\nsize=%o\n", res_perms[pos], size;
+        end if;
+        printf "#perms=%o, #ext_perm_set=%o, #res_perms=%o\n", #perms, #ext_perm_set, #res_perms;
+    end for;
+    delete File;
+end procedure;
+
+
+
+
+
+
+
+
+
+
+
+// Example
+perm_set := {
+    [ 5, 3, 1, 4, 2, 6 ],
+[ 4, 2, 3, 6, 1, 5 ],
+[ 5, 3, 1, 2, 4, 6 ],
+[ 4, 5, 3, 2, 6, 1 ],
+[ 5, 1, 2, 4, 3, 6 ],
+[ 2, 4, 1, 6, 3, 5 ],
+[ 5, 3, 1, 4, 6, 2 ],
+[ 1, 6, 3, 2, 4, 5 ],
+[ 1, 3, 6, 2, 5, 4 ],
+[ 1, 3, 2, 6, 4, 5 ],
+[ 2, 4, 3, 6, 1, 5 ],
+[ 3, 5, 2, 4, 6, 1 ],
+[ 6, 4, 2, 1, 5, 3 ],
+[ 5, 1, 6, 2, 4, 3 ],
+[ 3, 1, 5, 2, 6, 4 ],
+[ 2, 4, 6, 1, 5, 3 ],
+[ 4, 6, 3, 5, 1, 2 ],
+[ 2, 6, 3, 5, 1, 4 ],
+[ 5, 4, 2, 3, 6, 1 ],
+[ 2, 4, 5, 1, 3, 6 ],
+[ 2, 3, 6, 5, 1, 4 ],
+[ 1, 4, 5, 2, 6, 3 ],
+[ 3, 5, 2, 4, 1, 6 ],
+[ 4, 1, 2, 6, 5, 3 ],
+[ 5, 3, 1, 2, 6, 4 ],
+[ 5, 6, 3, 1, 4, 2 ],
+[ 1, 3, 2, 5, 6, 4 ],
+[ 3, 5, 1, 2, 4, 6 ],
+[ 3, 6, 2, 5, 1, 4 ],
+[ 3, 5, 6, 2, 4, 1 ],
+[ 5, 2, 6, 3, 4, 1 ],
+[ 1, 4, 6, 5, 3, 2 ],
+[ 2, 6, 3, 5, 4, 1 ],
+[ 5, 3, 6, 4, 1, 2 ],
+[ 6, 1, 3, 5, 4, 2 ]
+    };
+
+
+test_set(perm_set);
+extend_set(perm_set);
+
+
+printf "End of Program!\n";
+
+
+
