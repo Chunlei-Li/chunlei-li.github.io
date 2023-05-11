@@ -1,4 +1,4 @@
-with open("./NOMA-code_n6.txt", 'w') as fp1:
+with open("./NOMA-codebook_n=6_exhaust.txt", 'w') as fp1:
     maxcnt = 0
     with open(r"./NOMA-codebook_n=6.txt", 'r') as fp:
         k = 0
