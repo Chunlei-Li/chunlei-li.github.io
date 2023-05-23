@@ -68,7 +68,7 @@ genTargetSet := function(perm_set)
         perm2int[perm_seq[i] ] := i; 
         int2perm[i] := perm_seq[i];
     end for;
-    printAR(int2perm);
+    // printAR(int2perm);
     S := AssociativeArray(); 
     S[0] := {i : i in [1 .. N] };
     for i in [1 .. N] do
@@ -85,7 +85,7 @@ genTargetSet := function(perm_set)
             end if;
         end for;
     end for;
-    printAR(S);
+    // printAR(S);
     T := AssociativeArray();
     for j in S[0] do
         tmp := S[0] meet S[j];
@@ -95,7 +95,7 @@ genTargetSet := function(perm_set)
             T[ {0, j} ] := {};
         end if;
     end for;
-    printAR(T);
+    // printAR(T);
 
     iterative_transform := function(R) 
         complete_set := { };
