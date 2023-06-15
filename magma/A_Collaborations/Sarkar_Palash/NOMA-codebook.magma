@@ -1,153 +1,176 @@
-p := 2; Fp := GF(p);
-n := 4;
-printf "n=%o\n", n;
-perm_list := Setseq(Permutations({1 .. n}));
-total := # perm_list;
 
-for i in [1 .. total] do
-    if perm_list[i] eq [1 .. n] then
-        perm_list[i] := perm_list[1];
-        perm_list[1] := [i: i in [1 .. n]];
-    end if;
-end for;
-int2perm := AssociativeArray();
-for i in [1 .. total] do
-    int2perm[i] := perm_list[i];
-end for;
-perm2int := AssociativeArray();
-for i in [1..total] do
-    perm := perm_list[i];
-    perm2int[perm] := i;
-end for;
-
-for i in [1 .. total] do
-    printf "%o: %o\n", i, int2perm[i];
-end for;
-
-genMatrix := function(perm)
-    p := perm;
+// Operations on Matrix and Permutations
+genMatrix := function(p)
+    n := #p;
     A := Matrix(GF(2), n, n, [<p[i], p[i+1], 1> : i in [1 .. n-1] ] cat [<p[i+1], p[i], 1> : i in [1 .. n-1]]);
     return A;
 end function;
-M0 := genMatrix(perm_list[1]);
 
-compPermutation := function(p1, p2)
-    return [p1[p2[i]]: i in [1 .. n]];
-end function;
 invPermutation := function(p)
+    n := #p;
     inv_p := [1 .. n];
     for i in [1 .. n] do
         inv_p[p[i]] := i;
     end for;
     return inv_p;
 end function;
-filter := function(p)
-   M1 := genMatrix(p); 
-   return Rank(M1-M0) eq n;
+revPermutation := function(p)
+    n := #p;
+    return [p[(n+1)-i]: i in [1..n]];
 end function;
+compPermutation := function(p1, p2)
+    n := #p1;
+    return [p1[p2[i]]: i in [1 .. n]];
+end function;
+
+genPermutationCycle := function(perm)
+    n := #perm;
+    perm_cycle := [perm];
+    id_perm := [i: i in [1 .. n]];
+    tmp_perm := compPermutation(perm, perm);
+    while tmp_perm ne id_perm do
+        Append(~perm_cycle, tmp_perm);
+        tmp_perm := compPermutation(perm, tmp_perm);
+    end while;
+    return  perm_cycle;
+end function;
+
 
 printAR := procedure(as_array)
     printf "-----\n";
     for key in Keys(as_array) do
-        printf "%2o:%o\n", key, as_array[key];
+        // printf "%o\n:\n%o\n", key, as_array[key];
+        printf "%o\n", key;
     end for;
 end procedure;
 
 
-S := AssociativeArray();
-S[1] := { i: i in [2..total] | Rank(M0-genMatrix(int2perm[i])) eq n };
-for i in [2 .. total] do
-    S[ i ] := { perm2int[compPermutation(int2perm[i], int2perm[j])] : j in S[1] };
-end for;
-//printAR(S);
 
-//T := AssociativeArray();
-//for j in S[1] do
-    //tmp := S[1] meet S[j];
-    //if #tmp gt 1 then
-        //T[ {1, j} ] :=  tmp;
-    //end if;
-//end for;
-//printAR(S1);
-
-//transform := function(R) 
-    //R0 := [ ];
-    //R1 := AssociativeArray();
-    //for kset in Keys(R) do
-        //vset := R[kset];
-        //if #kset eq 0 then
-            //Include(~R0, kset);
-        //else
-            //for j in vset do
-                //tmp := vset meet S[j];
-                //new_kset := kset join {j};
-                //if #tmp eq 0 then
-                    //Include(~R0, new_kset);
-                //else
-                    //R1[ new_kset ] :=  tmp;
-                //end if;
-            //end for;
-        //end if;
-    //end for;
-    //return R0, R1;
-//end function;
-
-//res, R1 := transform(T);
-//while #R1 gt 0 do
-    //printf "size = %o\n", #R1;
-    //tmp := R1;
-    //R0, R1 := transform(tmp);
-    //for item in R0 do
-        //Include(~res, item);
-    //end for;
-//end while;
-
-//res := [ ];
-//for key in Keys(as_array) do
-    //Include(~res, Seqset(key));
-//end for;
-//#res;
-//for seq in Keys(T) do
-    //printf "%o: %o", seq, #T[seq];
-//end for;
-
-//transform := function(ass_array1)  // ass_array1[seq] = set
-    
-//end function;
-
-
-//S[1] eq S[13];
-
-//for i in [1 .. #S] do
-    //if perm_list[i] in S[1] then
-        //S1i := S[1] meet S[i];
-        //if #S1i gt 0 then
-            //printf "i=%2o: %o, %o, %o, %o\n", i, perm_list[1], perm_list[i], #S[i], #S1i;
-        //end if;
-    //end if;
-//end for;
-
-
-File := Open(Sprintf("NOMA-codebook_n%o.txt",n), "w");
-fprintf File, "\n=============================================\n\nn=%o\n", n;
-fprintAR := procedure(as_array)
-    fprintf File, "-----\n";
-    for key in Keys(as_array) do
-        fprintf File, "%2o:%o\n", key, as_array[key];
+function genCompleteSet(n)
+    perm_list := Setseq(Permutations({1 .. n})); 
+    total := # perm_list; 
+    for i in [1 .. total] do 
+        if perm_list[i] eq [1 .. n] then 
+            perm_list[i] := perm_list[1]; 
+            perm_list[1] := [i: i in [1 .. n]]; 
+        end if; 
+    end for; 
+    int2perm := AssociativeArray(); 
+    for i in [1 .. total] do 
+        int2perm[i] := perm_list[i]; 
+    end for; 
+    perm2int := AssociativeArray(); 
+    for i in [1..total] do 
+        perm := perm_list[i]; 
+        perm2int[perm] := i; 
+    end for; 
+    id_perm := [i: i in [1..n]];
+    M0 := genMatrix(id_perm);
+    complete_perm_set := {id_perm};
+    for j in [1 .. total] do
+        Mj := genMatrix(int2perm[j]);
+        r := Rank(M0+Mj);
+        if (n mod 2 eq 0 and r eq n) or (n mod 2 eq 1 and r eq n-1) then
+            Include(~complete_perm_set, int2perm[j]);
+        end if;
     end for;
-end procedure;
-fprintAR(S);
-//for set in res do
-    //fprintf File, "\n----------\n";
-    //for i in set do
-        //fprintf File, "%o\n", int2perm[i];
-    //end for;
-////fprintf File, "%o\n", res;
-//end for;
-//fprintf File, "\nTotal number = %o\n", #res;
-delete File;
+    File := Open(Sprintf("NOMA-codebook_id_n%o.txt", n), "w");
+    fprintf File, "// The set of permutations compatible with the identity permutation\n";
+    fprintf File, "// n=%o, size=%o\n\nperm_seq :=%o;\n\n", n, #complete_perm_set, complete_perm_set;
+    return complete_perm_set;
+end function;
 
-printf "End of Program!\n";
+function genSortedArray(n)
+    perm_list := Permutations({1 .. n});
+    perm_array := AssociativeArray();
+    sorted_array := AssociativeArray();
+    id_perm := [i: i in [1..n]];
+    M0 := genMatrix(id_perm);
+    while #perm_list gt 0 do
+        perm := Random(perm_list);
+        M  := genMatrix(perm);
+        Exclude(~perm_list, perm);
+        r := Rank(M0+M);
+        cond := (n mod 2 eq 0 and r eq n) or (n mod 2 eq 1 and r eq n-1);
+        if cond then
+            perm_array[perm] := [];
+            tmp_perm := compPermutation(perm, perm);
+            while tmp_perm ne id_perm do
+                Exclude(~perm_list, tmp_perm);
+                M1 := genMatrix(tmp_perm);
+                r := Rank(M0+M1);
+                cond1 := (n mod 2 eq 0 and r eq n) or (n mod 2 eq 1 and r eq n-1);
+                if cond1 then
+                 Append(~perm_array[perm], tmp_perm);       
+                end if;
+                tmp_perm := compPermutation(perm, tmp_perm);
+            end while;
+        end if;
+    end while;
+    sizes := [];
+    for key in Keys(perm_array) do
+        s := #perm_array[key] + 1;
+        if s notin sizes then
+            sorted_array[s] := [ [key] cat perm_array[key] ];
+            Append(~sizes, s);
+        else
+            Append(~sorted_array[s], [key] cat perm_array[key]);
+        end if;
+    end for;
+    return  sorted_array;
+end function;
 
-
-
+genGraph := function(perm_set) 
+    //Auxiliary function 
+    // generate Matrix from permutation
+    n       := #Random(perm_set); // assuming all permutations have same size n
+    // id_perm := [i: i in [1 .. n]];
+    // M0      := genMatrix(id_perm);
+    // perm_seq:= [id_perm];
+    // for perm in perm_set do
+    //     Mi := genMatrix(perm);
+    //     r  := Rank(M0+Mi);
+    //     if (n mod 2 eq 0 and r eq n) or (n mod 2 eq 1 and r eq n-1) then
+    //         Include(~perm_seq, perm); 
+    //     end if; 
+    // end for;
+    perm_seq := Setseq(perm_set);   
+    edges := [];
+    N := #perm_seq; 
+    File  := Open(Sprintf("NOMA-codebook_edges_n%o.txt", n), "w");
+    fprintf File, "//size=%o\nperm_seq := %o;\n\n", N, perm_seq;
+    // File1 := Open(Sprintf("sample-edges_mc_n%o.txt", n), "w");
+    File2 := Open(Sprintf("sample-edges_mcs_n%o.txt", n), "w");
+    cnt := 0;
+    // The C++ libraries to generate one max clique and all max cliques 
+    // use edeges of different formats: e i j and i,j
+    for j in [2 .. N] do
+        Include(~edges,[1,j]);
+        cnt := cnt+2;
+    end for;
+    for i in [2..N] do
+        Mi := genMatrix(perm_seq[i]);
+        for j in [i+1 .. N] do
+            Mj := genMatrix(perm_seq[j]);
+            r  := Rank(Mi+Mj);
+            if (n mod 2 eq 0 and r eq n) or (n mod 2 eq 1 and r eq n-1) then
+                Include(~edges,[i,j]);
+                cnt := cnt+2;
+            end if;
+        end for; 
+    end for;
+    fprintf File, "edges := %o;\n\n", edges;
+    // fprintf File1, "%o\n%o\n", N, cnt/2;
+    fprintf File2, "%o\n%o", N+1, cnt;
+    for i in [1 .. cnt div 2] do
+        edge := edges[i];
+        // fprintf File1, "e %o %o\n", edge[1], edge[2]; 
+        fprintf File2, "\n%o,%o", edge[1], edge[2];
+        fprintf File2, "\n%o,%o", edge[2], edge[1];  
+    end for;
+    delete File;
+    // delete File1;
+    delete File2;
+    // Generate max cliques with the C++ library quick-clqiue
+    return edges;      
+end function;

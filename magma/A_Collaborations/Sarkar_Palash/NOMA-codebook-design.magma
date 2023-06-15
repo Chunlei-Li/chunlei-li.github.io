@@ -52,16 +52,17 @@ genTargetSet := function(perm_set)
     n       := #Random(perm_set); // assuming all permutations have same size n
     id_perm := [i: i in [1 .. n]];
     M0      := genMatrix(id_perm);
-    //perm_seq:= [id_perm];
-    //for perm in perm_set do
-        //Mi := genMatrix(perm);
-        //if Determinant(M0+Mi) ne 0 then
-            //Include(~perm_seq, perm); 
-        //end if; 
-    //end for;
-    perm_seq := perm_set;
+    perm_seq:= [id_perm];
+    for perm in perm_set do
+        Mi := genMatrix(perm);
+        r  := Rank(Mi+M0);
+        if (n mod 2 eq 0 and r eq n) or (n mod 2 eq 1 and r eq n-1) then
+            Include(~perm_seq, perm); 
+        end if; 
+    end for;
+    // perm_seq := perm_set;
     N := #perm_seq; 
-    //printf "=========\nSize of input set = %o\n", #perm_seq;
+    printf "=========\nSize of input set = %o\n", #perm_seq;
     perm2int := AssociativeArray();
     int2perm := AssociativeArray();
     for i in [1 .. N] do
@@ -79,13 +80,14 @@ genTargetSet := function(perm_set)
             //cond := compPermutation(invPermutation(perm), perm1) in [perm_seq[i] : i in [2 .. N]];
             Mj := genMatrix(perm1); 
             if Mj ne M0 then
-                if Determinant(Mi+Mj) ne 0 then
+                r := Rank(Mi+Mj);
+                if (n mod 2 eq 0 and r eq n) or (n mod 2 eq 1 and r eq n-1) then
                     Include(~S[i], perm2int[perm1]);
                 end if;
             end if;
         end for;
     end for;
-    // printAR(S);
+    
     T := AssociativeArray();
     for j in S[0] do
         tmp := S[0] meet S[j];
@@ -134,7 +136,7 @@ genTargetSet := function(perm_set)
     end for;
     for int_set in res do
         if #int_set eq k then
-            Include(~res_perm, { int2perm[i] : i in int_set });
+            Include(~res_perm, { int2perm[i] : i in (int_set diff {0}) });
         end if;
     end for;
     return res_perm; 
@@ -198,9 +200,16 @@ function genCompleteSet(n)
         perm := perm_list[i]; 
         perm2int[perm] := i; 
     end for; 
-    M0 := genMatrix(int2perm[1]);
-    complete_perm_set := { int2perm[i]: i in [2..total] | Determinant(M0-genMatrix(int2perm[i])) ne 0 };
-
+    id_perm := [i: i in [1..n]];
+    M0 := genMatrix(id_perm);
+    complete_perm_set := {id_perm};
+    for j in [1 .. total] do
+        Mj := genMatrix(int2perm[j]);
+        r := Rank(M0+Mj);
+        if (n mod 2 eq 0 and r eq n) or (n mod 2 eq 1 and r eq n-1) then
+            Include(~complete_perm_set, int2perm[j]);
+        end if;
+    end for;
     File := Open(Sprintf("NOMA-codebook_id_n%o.txt", n), "w");
     fprintf File, "The set of permutations satisfying condition with the identity permutation\n";
     fprintf File, "n=%o, size=%o\n\n%o", n, #complete_perm_set, complete_perm_set;
@@ -241,14 +250,74 @@ procedure extend_set(perm_set)
     delete File;
 end procedure;
 
-//perm_set := genCompleteSet(4);
-perm_set := [
- [3, 2, 4, 1], [2, 4, 1, 3], [3, 4, 1, 2], [2, 4, 3, 1], [3, 1, 4, 2], [1, 3, 4, 2],
- [4, 2, 1, 3], [2, 1, 4, 3], [4, 1, 3, 2], [2, 3, 1, 4], [1, 4, 2, 3], [3, 1, 2, 4]
-];
+n := 5;
+complete_perm_set := genCompleteSet(n);
+target_set := genTargetSet(complete_perm_set);
 
-test_set(perm_set);
 //extend_set(perm_set);
+
+// n := 8;
+
+// perm_list := Setseq(Permutations({1 .. n})); 
+// load "NOMA-codebook-permseq_n8a.txt";
+// id_perm := [i : i in [1 .. n]];
+// M0 := genMatrix(id_perm);
+
+// tmplist := perm_seq;
+// classiedseq := [];
+// while #tmplist ge 1 do
+//     p := Random(tmplist);
+//     Exclude(~tmplist, p);
+//     Mp:= genMatrix(p);
+//     if Determinant(M0-Mp) ne 0 then
+//         pseq := [ p ];
+//         t := #pseq;
+//         p1 := compPermutation(p,pseq[t]);
+//         Mp1 := genMatrix(p1);
+//         while Determinant(M0-Mp1) ne 0 do
+//             Append(~pseq, p1);
+//             Exclude(~tmplist, p1);
+//             // printf "p1=%o\n",p1;
+//             t := #pseq;
+//             p1 := compPermutation(p,pseq[t]);
+//             Mp1 := genMatrix(p1);
+//             Exclude(~tmplist, p1);
+//         end while;
+//         Include(~classiedseq, pseq);
+//     end if;
+// end while;
+
+// genCycle := function(perm)
+//     n := #perm;
+//     id_perm := [i: i in [1 .. n] ];
+//     perm_cycle := [ id_perm ];
+//     t := #perm_cycle;
+//     newPerm := compPermutation(perm, perm_cycle[t]);
+//     while newPerm ne id_perm do
+//         Include(~perm_cycle, newPerm);
+//         t := #perm_cycle;
+//         newPerm := compPermutation(perm, perm_cycle[t]);
+//     end while;
+//     return  perm_cycle;
+// end function;
+
+// load "ClassifiedPermutations_n8.txt";
+// for pseq in classiedseq do
+//     if #pseq eq n-2 then
+//     printf "%o: %o/%o\n", pseq[1], #pseq, #genCycle(pseq[1]);    
+//     end if;
+// end for;
+
+// for perm in perm_list do
+//     printf "%o: %o\n", perm, compOrder(perm);
+// end for;
+
+// perm := [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 2, 1];
+// perm_seq := genCycle(perm);
+
+// genTargetSet(perm_seq);
+
+
 
 
 printf "End of Program!\n";
