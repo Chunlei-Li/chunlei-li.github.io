@@ -1,0 +1,299 @@
+/*  
+	This is a simulation of the decoding of generalized LRPC codes
+	under the following assumptions
+	- the subspace B contains a basis [b_1,...,b_d] such that T_{*,bj,*} is invertible
+	- the syndrome space has dimension r*d 
+	This corresponds to Algorithm 1 in the paper 
+	Generalized LRPC codes at https://arxiv.org/abs/2305.02053
+*/
+
+/*================================================
+		     Setup of Parameters
+=================================================*/  
+
+
+// Base field.
+q := 2; Fq := GF(q);
+// Density of the LRPC.
+d := 2;
+// Error rank.
+r := 4;
+// dimnsion of the GLRPC code will be k*m
+k := 5;
+// recover is set as n - k.
+recover := r*d + 7;
+n := recover + k;
+n := 15;
+m := 13;
+
+printf "[ m, n, k, r, d ] = %o\n", [m,n,k,r,d];
+
+// Vector space where supports lives.
+Fqm := VectorSpace(Fq, m);
+
+/*================================================
+		     Utility Functions
+=================================================*/ 
+// Define the T-product.
+// Given a,b,T returns T_{a,b,*}.
+Prod_T := function(T, a, b)
+	T_b := Matrix(Fq, T[1]*Transpose(Matrix(b)));
+	for i in [2..m] do
+		T_b := HorizontalJoin(T_b, T[i]*Transpose(Matrix(b)));
+	end for;
+	return a*T_b;
+end function;
+
+// Transform a subspace using matrix A
+// Applies A to all the vectors of the basis of the space S.
+// Transform(A, S): S -> AS
+// S = <s_1, ..., s_k> -> AS = <As_1, ..., As_k> 
+TransformLeft := function(A, S)
+	base_s := Basis(S);
+	k      := #base_s;
+	return sub<Fqm | [Fqm ! Transpose(A * Transpose(Matrix(base_s[i]))): i in [1..k]]>;
+end function;
+
+// Applies A to all the vectors of the base of the space S.
+// Transform(A, S): S -> SA
+// S = <s_1, ..., s_k> -> SA = <s_1 A, ..., s_k A> 
+TransformRight := function(A, S)
+	base_s := Basis(S);
+	k      := #base_s;
+	return sub<Fqm | [Fqm ! Matrix(base_s[i]) * A: i in [1..k]]>;
+end function;
+
+// Trace product of two matrices (sum(a_ij b_ij)).
+TraceProduct := function(A, B)
+	if (NumberOfRows(A) eq NumberOfRows(B)) and (NumberOfColumns(A) eq NumberOfColumns(B)) then
+		return &+[A[i,j] * B[i,j]: i in [1..NumberOfRows(A)], j in [1..NumberOfColumns(A)]];
+	end if;
+	//print("Matrices have different sizes");
+	return 0;
+end function;
+
+// Given A,B two subspaces and T a tensor.
+// Return T-product(A,B) the product subspace using T-product.
+ProductSpace := function(A,B,T)
+	c := [Prod_T(T, a, b): a in Basis(A), b in Basis(B)];
+	return sub<Fqm | c>;
+end function;
+
+// Generate extension of space H=<H_1,...,H_{n-k}> through T: 
+// H_T := <T_{*,*,i} H_j : i in [1..m], j in [1..n-k]>.
+Expanded_space := function(H, T)
+	H_T := TransformLeft(T[1], H);
+	for i in [2..m] do
+		H_T := H_T + TransformLeft(T[i], H);
+	end for;
+	return H_T;
+end function;
+
+// Let Supp_C = T-product(Supp_A, Supp_B)
+// Try to recover Supp_A from the knwoledge of Supp_C and Supp_B.
+
+// Given a vector space V and a 3-tensor T.
+// Find a base {v_1, ..., v_k} (or at least some l.i. elements) of V of invertible vectors.
+// Return {T_{*,v_1,*}^-1, ..., T_{*,v_k,*}^-1}. 
+Get_Invertible_Base := function(V, T)
+	Inv_Base := [];
+	Inv_Matrices := [];
+	Partial_Supp := sub<Fqm | []>; 
+	for i in [1..Dimension(V) * 10] do
+		v := Random(V);
+		if not (v in sub<Fqm | Inv_Base>) then
+			T_v := Matrix(Fq, T[1]*Transpose(Matrix(v)));
+			for i in [2..m] do
+				T_v := HorizontalJoin(T_v, T[i]*Transpose(Matrix(v)));
+			end for;
+			if Determinant(T_v) ne 0 then
+				Inv_Base := Inv_Base cat [v];
+				Inv_Matrices := Inv_Matrices cat [T_v^-1];
+			end if;
+		end if;
+		if sub<Fqm | Inv_Base> eq V then
+			break;
+		end if;
+	end for;
+	// if sub<Fqm | Inv_Base> ne V  then
+	// 	printf "Warning: not enough invertible matrices";
+	// end if;
+	//printf "found:", #Inv_Matrices, " invertible elements.";
+	return Inv_Matrices;
+end function;
+
+// Transform the product space using inverses of an invertible base.
+// Obtain A as the intersection of those spaces.
+// From C = T-product(A,B) get A.
+InvertProductSpace := function(C, B, T)
+	B_inv := Get_Invertible_Base(B, T);
+	if #B_inv ge 2 then
+		A := TransformRight(B_inv[1], C);
+	else 
+		// print("Not able to find enough invertibles.");
+		return sub<Fqm | []>;
+	end if;
+	for i in [2..#B_inv] do
+		A := A meet TransformRight(B_inv[i], C);
+	end for;
+	return A;
+end function;
+// End utilities.
+
+/*================================================
+		     Experiments
+=================================================*/ 
+
+// Play with random, so we can reproduce interesting cases.
+SetSeed(1, 100000);
+
+// Create the code.
+// Generate a random sequence of matrices T[k] = T_{*,*,k}.
+// This will be the 3-tensor T, generating the T-product.
+T := [Matrix(Fq, m ,m, [Random(Fq): j in [1..m*m]]): i in [1..m]];
+
+//Generate a subspace of dimension d.
+// Create a subspace  SuppH of (Fq)^m of dimension d.
+SuppH := sub<Fqm | [Random(Fqm): i in [1..d]]>;
+// Check column support is of dimension d and there exist d invertible matrices
+while (not(Dimension(SuppH) eq d and #Get_Invertible_Base(SuppH, T) eq d)) do
+	T := [Matrix(Fq, m ,m, [Random(Fq): i in [1..m*m]]): j in [1..m]];
+	SuppH := sub<Fqm | [Random(Fqm): i in [1..d]]>;
+end while;
+
+// Generate H_1, ..., H_{n-k} from SuppH with dim=d.
+genH := [Transpose(Matrix(Fq, n, m, [Random(SuppH): i in [1..n]])): j in [1..n-k]];
+
+// Fix a base for SuppH. We will use that base to reconstruct the error.
+B := Transpose(Matrix(Basis(SuppH)));
+// Find coordinates matrices of H_j with respect to the base B.
+// That is find Y_j such that BY_j = H_j.
+Y := [Transpose(Matrix(Fq, n, d, [Solution(Transpose(B), Transpose(genH[j])[i]): i in [1..n]])): j in [1..n-k]];
+
+
+Test := procedure(trials)
+	// Counters for different steps
+	ProductCount       := 0;
+	ErrorSupportCount  := 0;
+	ErrorRecoveryCount := 0;
+	Fails              :=  [0, 0, 0, 0];
+	// Start the test!
+	// Trick to skip bad values.
+	for trial in [1..trials] do
+		// Create a subspace  SuppE of (Fq)^m of dimension r.
+		SuppE := sub<Fqm | [Random(Fqm): i in [1..r]]>;
+		// Check column support is really of dimension r.
+		while( Dimension(SuppE) lt r) do
+			SuppE := sub<Fqm | [Random(Fqm): i in [1..r]]>;
+		end while;
+
+		// Generate an error matrix Err in (F_q)^(m x n) such that Colsp(Err) = E.
+		Err := Transpose(Matrix([ElementToSequence(Random(SuppE)): i in [1..n]]));
+		while( Rank(Err) lt r) do
+			Err := Transpose(Matrix([ElementToSequence(Random(SuppE)): i in [1..n]]));
+		end while;
+
+		//Step 1. Error Support Recovery
+
+		// Generate the T-poduct space between SuppE and SuppH.
+		SuppEH := ProductSpace(SuppE, SuppH, T);
+
+		// Generate the syndrome matrix S.
+		S := ZeroMatrix(Fq, m, n-k);
+		for i in [1..m] do
+			for j in [1..n-k] do
+				S[i,j] := TraceProduct(Err, T[i] * genH[j]);
+			end for;
+		end for;
+
+		// Recover Big_Supp_E_rec as Colsp(S).
+		SuppEH_rec := sub<Fqm | [Fqm ! Transpose(S)[j] : j in [1..n-k]]>;
+
+		// Check that SuppEH recovered is the same as SuppEH
+		if SuppEH_rec eq SuppEH then
+			ProductCount +:= 1;
+			//print "Recovered the correct product space.";
+		else
+			//print "Failed to recover the product space.";
+			Fails[1] +:= 1;
+			continue trial;	
+		end if;
+
+		// Do the intersection of SuppEH_rec, verify if it is equal to SuppE.
+		SuppE_rec := InvertProductSpace(SuppEH_rec, SuppH, T);
+
+		// Check we found the support of the error.
+		if SuppE_rec eq SuppE then
+			//print "Recovered the correct error support.";
+			ErrorSupportCount +:= 1;
+		else
+			//print "Failed to recover the error support.";
+			Fails[2] +:= 1;
+			continue trial;
+		end if;
+
+		//Step 2. Error Recovery
+
+		// Expand the linear system and find X such that EX = Err.
+		// Fix a base for SuppE_rec. We will use that base to reconstruct the error.
+		A := Transpose(Matrix(Basis(SuppE_rec)));
+		// Find X such that FX = Err.
+		X := Transpose(Matrix(Fq, n, r, [Solution(Transpose(A), Transpose(Err)[i]): i in [1..n]]));
+
+		// Find coordinates Z of S w.r.t its base C.
+		// C is obtained by the products between A,B.
+		C := Transpose(Matrix(Fq, r*d, m, [Prod_T(T, Transpose(A)[i], Transpose(B)[j]): i in [1..r], j in [1..d]]));
+		Z := Transpose(Matrix(Fq, n-k, r*d, [Solution(Transpose(C), Transpose(S)[i]): i in [1..n-k]]));
+		// Split Z in r matrices (n-k) x d by taking one column each r.
+		SplitZ := [Matrix(Fq, d, n-k, [Z[j + i*r]: i in [0..d-1]]): j in [1..r]];
+
+		// Column concatenation of the r matrices of SplitZ.
+		ZZ := [HorizontalJoin([Transpose(SplitZ[j])[i]: i in [1..n-k]]): j in [1..r]];
+
+		// Merge matrices in Y.
+		YY := HorizontalJoin([Transpose(Y[i]) : i in [1..n-k]]);
+
+		// Solve the linear system.
+		X_rec := ZeroMatrix(Fq, 1, n);
+		for i in [1..r] do
+			hasSolution, solution := IsConsistent(YY, ZZ[i]);
+			if hasSolution then
+				X_rec := VerticalJoin(X_rec, solution);
+			else 
+				// print "NO SOLUTION";
+				Fails[3] +:= 1;
+				continue trial;
+			end if;
+		end for;
+
+		X_rec := Submatrix(X_rec, [2..r+1], [1..n]);
+
+
+		// Check we found the correct solution.
+		if Err eq A*X_rec then
+			//print "Recovered the correct Solution.";
+			ErrorRecoveryCount +:= 1;
+		else
+			//print "Wrong solution.";
+			Fails[4] +:= 1;
+			continue trial;
+		end if;
+
+	end for;
+
+	// Expected recovery from theoretical estimation
+	Expected_ProductRecoveryCount := Real((1 - q^(r*d - (n - k))))*trials;
+	Expected_ErrorRecoveryCount := Real((1 - q^(r*d - (n - k)) - q^(-(d-1)*(m - r*d - r))))*trials;
+	Expected_ErrorSuppRecoveryCount := Real((1 - q^(r*d - (n - k))) * (1 - q^(-(d-1)*(m - r*d - r)) ))*trials;
+
+	// printf "parameters: \n q = %o \n m = %o \n n = %o \n k = %o \n r = %o \n d = %o \n \n", q,m,n,k,r,d;
+	printf "Expected Product Space recovery: %o \nMeasured Product Space recovery: %o \n \n", Expected_ProductRecoveryCount, ProductCount;
+	printf "Expected Error Support recovery: %o \nMeasured Error Support recovery: %o \n \n", Expected_ErrorSuppRecoveryCount, ErrorSupportCount;
+	printf "Expected Error recovery: %o \nMeasured Error recovery: %o \n \n", Expected_ErrorRecoveryCount, ErrorRecoveryCount;
+	printf "Fails = %o\n", Fails;
+end procedure;
+
+trials := 10000;
+Test(trials);
+
+
