@@ -6,6 +6,11 @@
 	This corresponds to Algorithm 1 in the paper 
 	Generalized LRPC codes at https://arxiv.org/abs/2305.02053
 */
+System("clear"); //clear screen 
+printf "================================\n";
+printf "Start of Program ...\n";
+System("date");
+printf "================================\n";
 
 /*================================================
 		     Setup of Parameters
@@ -14,19 +19,22 @@
 
 // Base field.
 q := 2; Fq := GF(q);
-// Density of the LRPC.
-d := 2;
 // Error rank.
-r := 4;
+r := 5;
+// Density of the LRPC.
+d := 3;
 // dimnsion of the GLRPC code will be k*m
-k := 5;
-// recover is set as n - k.
-recover := r*d + 7;
-n := recover + k;
-n := 15;
-m := 13;
 
-printf "[ m, n, k, r, d ] = %o\n", [m,n,k,r,d];
+failure_rate_theo := [];
+failure_rate_sim  := [];
+
+
+for eta in [ 1 .. 5 ] do
+
+m := r*(d+1) + eta;
+k := r*d + (d-1)*eta;
+n := 2*k;
+
 
 // Vector space where supports lives.
 Fqm := VectorSpace(Fq, m);
@@ -125,8 +133,7 @@ end function;
 // Transform the product space using inverses of an invertible base.
 // Obtain A as the intersection of those spaces.
 // From C = T-product(A,B) get A.
-InvertProductSpace := function(C, B, T)
-	B_inv := Get_Invertible_Base(B, T);
+InvertProductSpace := function(C, B_inv, T)
 	if #B_inv ge 2 then
 		A := TransformRight(B_inv[1], C);
 	else 
@@ -144,34 +151,43 @@ end function;
 		     Experiments
 =================================================*/ 
 
-// Play with random, so we can reproduce interesting cases.
-SetSeed(1, 100000);
 
-// Create the code.
-// Generate a random sequence of matrices T[k] = T_{*,*,k}.
-// This will be the 3-tensor T, generating the T-product.
-T := [Matrix(Fq, m ,m, [Random(Fq): j in [1..m*m]]): i in [1..m]];
 
-//Generate a subspace of dimension d.
-// Create a subspace  SuppH of (Fq)^m of dimension d.
-SuppH := sub<Fqm | [Random(Fqm): i in [1..d]]>;
-// Check column support is of dimension d and there exist d invertible matrices
-while (not(Dimension(SuppH) eq d and #Get_Invertible_Base(SuppH, T) eq d)) do
-	T := [Matrix(Fq, m ,m, [Random(Fq): i in [1..m*m]]): j in [1..m]];
+
+er1 := Real(q^(r*d - (n- k)));
+er2 := Real(q^((d-1)*(r*(d+1)-m )));
+
+Expected_ProductRecovery_Error   := er1;
+Expected_ErrorRecovery_Error     := er1 + er2;
+Expected_ErrorSuppRecovery_Error := er1 + er2;
+
+
+Test := function(trials)
+	// Create the code.
+	// Generate a random sequence of matrices T[k] = T_{*,*,k}.
+	// This will be the 3-tensor T, generating the T-product.
+	T := [Matrix(Fq, m ,m, [Random(Fq): j in [1..m*m]]): i in [1..m]];
+
+	//Generate a subspace of dimension d.
+	// Create a subspace  SuppH of (Fq)^m of dimension d.
 	SuppH := sub<Fqm | [Random(Fqm): i in [1..d]]>;
-end while;
+	B_inv := Get_Invertible_Base(SuppH, T);
+	// Check column support is of dimension d and there exist d invertible matrices
+	while (#B_inv lt d) do
+		T := [Matrix(Fq, m ,m, [Random(Fq): i in [1..m*m]]): j in [1..m]];
+		SuppH := sub<Fqm | [Random(Fqm): i in [1..d]]>;
+		B_inv := Get_Invertible_Base(SuppH, T);
+	end while;
 
-// Generate H_1, ..., H_{n-k} from SuppH with dim=d.
-genH := [Transpose(Matrix(Fq, n, m, [Random(SuppH): i in [1..n]])): j in [1..n-k]];
+	// Generate H_1, ..., H_{n-k} from SuppH with dim=d.
+	genH := [Transpose(Matrix(Fq, n, m, [Random(SuppH): i in [1..n]])): j in [1..n-k]];
 
-// Fix a base for SuppH. We will use that base to reconstruct the error.
-B := Transpose(Matrix(Basis(SuppH)));
-// Find coordinates matrices of H_j with respect to the base B.
-// That is find Y_j such that BY_j = H_j.
-Y := [Transpose(Matrix(Fq, n, d, [Solution(Transpose(B), Transpose(genH[j])[i]): i in [1..n]])): j in [1..n-k]];
+	// Fix a base for SuppH. We will use that base to reconstruct the error.
+	B := Transpose(Matrix(Basis(SuppH)));
+	// Find coordinates matrices of H_j with respect to the base B.
+	// That is find Y_j such that BY_j = H_j.
+	Y := [Transpose(Matrix(Fq, n, d, [Solution(Transpose(B), Transpose(genH[j])[i]): i in [1..n]])): j in [1..n-k]];
 
-
-Test := procedure(trials)
 	// Counters for different steps
 	ProductCount       := 0;
 	ErrorSupportCount  := 0;
@@ -180,11 +196,16 @@ Test := procedure(trials)
 	// Start the test!
 	// Trick to skip bad values.
 	for trial in [1..trials] do
+		SetSeed(trial);
+		//printf "%o \n", trial;
 		// Create a subspace  SuppE of (Fq)^m of dimension r.
 		SuppE := sub<Fqm | [Random(Fqm): i in [1..r]]>;
+		// Generate the T-poduct space between SuppE and SuppH.
+		SuppEH := ProductSpace(SuppE, SuppH, T);
 		// Check column support is really of dimension r.
-		while( Dimension(SuppE) lt r) do
+		while( Dimension(SuppE) lt r) or (Dimension(SuppEH) lt r*d ) do
 			SuppE := sub<Fqm | [Random(Fqm): i in [1..r]]>;
+			SuppEH := ProductSpace(SuppE, SuppH, T);
 		end while;
 
 		// Generate an error matrix Err in (F_q)^(m x n) such that Colsp(Err) = E.
@@ -195,9 +216,6 @@ Test := procedure(trials)
 
 		//Step 1. Error Support Recovery
 
-		// Generate the T-poduct space between SuppE and SuppH.
-		SuppEH := ProductSpace(SuppE, SuppH, T);
-
 		// Generate the syndrome matrix S.
 		S := ZeroMatrix(Fq, m, n-k);
 		for i in [1..m] do
@@ -205,7 +223,6 @@ Test := procedure(trials)
 				S[i,j] := TraceProduct(Err, T[i] * genH[j]);
 			end for;
 		end for;
-
 		// Recover Big_Supp_E_rec as Colsp(S).
 		SuppEH_rec := sub<Fqm | [Fqm ! Transpose(S)[j] : j in [1..n-k]]>;
 
@@ -220,7 +237,7 @@ Test := procedure(trials)
 		end if;
 
 		// Do the intersection of SuppEH_rec, verify if it is equal to SuppE.
-		SuppE_rec := InvertProductSpace(SuppEH_rec, SuppH, T);
+		SuppE_rec := InvertProductSpace(SuppEH_rec, B_inv, T);
 
 		// Check we found the support of the error.
 		if SuppE_rec eq SuppE then
@@ -232,6 +249,7 @@ Test := procedure(trials)
 			continue trial;
 		end if;
 
+
 		//Step 2. Error Recovery
 
 		// Expand the linear system and find X such that EX = Err.
@@ -239,36 +257,31 @@ Test := procedure(trials)
 		A := Transpose(Matrix(Basis(SuppE_rec)));
 		// Find X such that FX = Err.
 		X := Transpose(Matrix(Fq, n, r, [Solution(Transpose(A), Transpose(Err)[i]): i in [1..n]]));
-
 		// Find coordinates Z of S w.r.t its base C.
 		// C is obtained by the products between A,B.
 		C := Transpose(Matrix(Fq, r*d, m, [Prod_T(T, Transpose(A)[i], Transpose(B)[j]): i in [1..r], j in [1..d]]));
-		Z := Transpose(Matrix(Fq, n-k, r*d, [Solution(Transpose(C), Transpose(S)[i]): i in [1..n-k]]));
+		Z := Transpose(Matrix(Fq, n-k, r*d, [Solution(Transpose(C), Transpose(S)[i]): i in [1..n-k]]));	
 		// Split Z in r matrices (n-k) x d by taking one column each r.
-		SplitZ := [Matrix(Fq, d, n-k, [Z[j + i*r]: i in [0..d-1]]): j in [1..r]];
-
+		SplitZ := [Matrix(Fq, d, n-k, [Z[j + i*r]: i in [0..d-1]]): j in [1..r]];		
 		// Column concatenation of the r matrices of SplitZ.
-		ZZ := [HorizontalJoin([Transpose(SplitZ[j])[i]: i in [1..n-k]]): j in [1..r]];
-
+		ZZ := [HorizontalJoin([Transpose(SplitZ[j])[i]: i in [1..n-k]]): j in [1..r]];		
 		// Merge matrices in Y.
-		YY := HorizontalJoin([Transpose(Y[i]) : i in [1..n-k]]);
-
+		YY := HorizontalJoin([Transpose(Y[i]) : i in [1..n-k]]);		
 		// Solve the linear system.
 		X_rec := ZeroMatrix(Fq, 1, n);
 		for i in [1..r] do
 			hasSolution, solution := IsConsistent(YY, ZZ[i]);
 			if hasSolution then
 				X_rec := VerticalJoin(X_rec, solution);
+				//print(Rank(C));
 			else 
-				// print "NO SOLUTION";
+				print "NO SOLUTION";
+				print(Rank(C));
 				Fails[3] +:= 1;
 				continue trial;
 			end if;
-		end for;
-
-		X_rec := Submatrix(X_rec, [2..r+1], [1..n]);
-
-
+		end for;	
+		X_rec := Submatrix(X_rec, [2..r+1], [1..n]);		
 		// Check we found the correct solution.
 		if Err eq A*X_rec then
 			//print "Recovered the correct Solution.";
@@ -277,23 +290,34 @@ Test := procedure(trials)
 			//print "Wrong solution.";
 			Fails[4] +:= 1;
 			continue trial;
-		end if;
-
+		end if;		
 	end for;
 
-	// Expected recovery from theoretical estimation
-	Expected_ProductRecoveryCount := Real((1 - q^(r*d - (n - k))))*trials;
-	Expected_ErrorRecoveryCount := Real((1 - q^(r*d - (n - k)) - q^(-(d-1)*(m - r*d - r))))*trials;
-	Expected_ErrorSuppRecoveryCount := Real((1 - q^(r*d - (n - k))) * (1 - q^(-(d-1)*(m - r*d - r)) ))*trials;
-
-	// printf "parameters: \n q = %o \n m = %o \n n = %o \n k = %o \n r = %o \n d = %o \n \n", q,m,n,k,r,d;
-	printf "Expected Product Space recovery: %o \nMeasured Product Space recovery: %o \n \n", Expected_ProductRecoveryCount, ProductCount;
-	printf "Expected Error Support recovery: %o \nMeasured Error Support recovery: %o \n \n", Expected_ErrorSuppRecoveryCount, ErrorSupportCount;
-	printf "Expected Error recovery: %o \nMeasured Error recovery: %o \n \n", Expected_ErrorRecoveryCount, ErrorRecoveryCount;
-	printf "Fails = %o\n", Fails;
-end procedure;
-
-trials := 10000;
-Test(trials);
 
 
+	// printf "Expected Product Space recovery: %o \nMeasured Product Space recovery: %o \n \n", Expected_ProductRecovery_Error, ProductCount;
+	// printf "Expected Error Support recovery: %o \nMeasured Error Support recovery: %o \n \n", Expected_ErrorSuppRecovery_Error, 1.0*(trials - ErrorSupportCount)/trials;
+	// printf "Expected Error recovery: %o \nMeasured Error recovery: %o \n \n", Expected_ErrorRecovery_Error, ErrorRecoveryCount;
+	printf "Fails = %o\n\n", Fails;
+	return  [Expected_ErrorRecovery_Error, &+Fails/trials*1.0];
+end function;
+
+
+trials := 2^12;
+res := Test(trials);
+Append(~failure_rate_theo, res[1]);
+Append(~failure_rate_sim, res[2]);
+
+end for;
+
+failure_rate_theo;
+failure_rate_sim;
+
+// Expected recovery from theoretical estimation
+
+
+
+printf "================================\n";
+printf "End of Program!\n";
+System("date");
+printf "================================\n";
