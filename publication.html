@@ -1,0 +1,2010 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN"
+  "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en">
+<head>
+<meta name="generator" content="jemdoc, see http://jemdoc.jaboc.net/" />
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+<link rel="stylesheet" href="jemdoc.css" type="text/css" />
+<title>Publications</title>
+<script type="text/javascript">
+<!--
+// QuickSearch script for JabRef HTML export 
+// Version: 3.0
+//
+// Copyright (c) 2006-2011, Mark Schenk
+//
+// This software is distributed under a Creative Commons Attribution 3.0 License
+// http://creativecommons.org/licenses/by/3.0/
+//
+// Features:
+// - intuitive find-as-you-type searching
+//    ~ case insensitive
+//    ~ ignore diacritics (optional)
+//
+// - search with/without Regular Expressions
+// - match BibTeX key
+//
+
+// Search settings
+var searchAbstract = true;	// search in abstract
+var searchComment = true;	// search in comment
+
+var noSquiggles = true; 	// ignore diacritics when searching
+var searchRegExp = false; 	// enable RegExp searches
+
+
+if (window.addEventListener) {
+	window.addEventListener("load",initSearch,false); }
+else if (window.attachEvent) {
+	window.attachEvent("onload", initSearch); }
+
+function initSearch() {
+	// check for quick search table and searchfield
+	if (!document.getElementById('qs_table')||!document.getElementById('quicksearch')) { return; }
+
+	// load all the rows and sort into arrays
+	loadTableData();
+	
+	//find the query field
+	qsfield = document.getElementById('qs_field');
+
+	// previous search term; used for speed optimisation
+	prevSearch = '';
+
+	//find statistics location
+	stats = document.getElementById('stat');
+	setStatistics(-1);
+	
+	// set up preferences
+	initPreferences();
+
+	// shows the searchfield
+	document.getElementById('quicksearch').style.display = 'block';
+	document.getElementById('qs_field').onkeyup = quickSearch;
+}
+
+function loadTableData() {
+	// find table and appropriate rows
+	searchTable = document.getElementById('qs_table');
+	var allRows = searchTable.getElementsByTagName('tbody')[0].getElementsByTagName('tr');
+
+	// split all rows into entryRows and infoRows (e.g. abstract, comment, bibtex)
+	entryRows = new Array(); infoRows = new Array(); absRows = new Array(); revRows = new Array();
+
+	// get data from each row
+	entryRowsData = new Array(); absRowsData = new Array(); revRowsData = new Array(); 
+	
+	BibTeXKeys = new Array();
+	
+	for (var i=0, k=0, j=0; i<allRows.length;i++) {
+		if (allRows[i].className.match(/entry/)) {
+			entryRows[j] = allRows[i];
+			entryRowsData[j] = stripDiacritics(getTextContent(allRows[i]));
+			allRows[i].id ? BibTeXKeys[j] = allRows[i].id : allRows[i].id = 'autokey_'+j;
+			j ++;
+		} else {
+			infoRows[k++] = allRows[i];
+			// check for abstract/comment
+			if (allRows[i].className.match(/abstract/)) {
+				absRows.push(allRows[i]);
+				absRowsData[j-1] = stripDiacritics(getTextContent(allRows[i]));
+			} else if (allRows[i].className.match(/comment/)) {
+				revRows.push(allRows[i]);
+				revRowsData[j-1] = stripDiacritics(getTextContent(allRows[i]));
+			}
+		}
+	}
+	//number of entries and rows
+	numEntries = entryRows.length;
+	numInfo = infoRows.length;
+	numAbs = absRows.length;
+	numRev = revRows.length;
+}
+
+function quickSearch(){
+	
+	tInput = qsfield;
+
+	if (tInput.value.length == 0) {
+		showAll();
+		setStatistics(-1);
+		qsfield.className = '';
+		return;
+	} else {
+		t = stripDiacritics(tInput.value);
+
+		if(!searchRegExp) { t = escapeRegExp(t); }
+			
+		// only search for valid RegExp
+		try {
+			textRegExp = new RegExp(t,"i");
+			closeAllInfo();
+			qsfield.className = '';
+		}
+			catch(err) {
+			prevSearch = tInput.value;
+			qsfield.className = 'invalidsearch';
+			return;
+		}
+	}
+	
+	// count number of hits
+	var hits = 0;
+
+	// start looping through all entry rows
+	for (var i = 0; cRow = entryRows[i]; i++){
+
+		// only show search the cells if it isn't already hidden OR if the search term is getting shorter, then search all
+		if(cRow.className.indexOf('noshow')==-1 || tInput.value.length <= prevSearch.length){
+			var found = false; 
+
+			if (entryRowsData[i].search(textRegExp) != -1 || BibTeXKeys[i].search(textRegExp) != -1){ 
+				found = true;
+			} else {
+				if(searchAbstract && absRowsData[i]!=undefined) {
+					if (absRowsData[i].search(textRegExp) != -1){ found=true; } 
+				}
+				if(searchComment && revRowsData[i]!=undefined) {
+					if (revRowsData[i].search(textRegExp) != -1){ found=true; } 
+				}
+			}
+			
+			if (found){
+				cRow.className = 'entry show';
+				hits++;
+			} else {
+				cRow.className = 'entry noshow';
+			}
+		}
+	}
+
+	// update statistics
+	setStatistics(hits)
+	
+	// set previous search value
+	prevSearch = tInput.value;
+}
+
+
+// Strip Diacritics from text
+// http://stackoverflow.com/questions/990904/javascript-remove-accents-in-strings
+
+// String containing replacement characters for stripping accents 
+var stripstring = 
+    'AAAAAAACEEEEIIII'+
+    'DNOOOOO.OUUUUY..'+
+    'aaaaaaaceeeeiiii'+
+    'dnooooo.ouuuuy.y'+
+    'AaAaAaCcCcCcCcDd'+
+    'DdEeEeEeEeEeGgGg'+
+    'GgGgHhHhIiIiIiIi'+
+    'IiIiJjKkkLlLlLlL'+
+    'lJlNnNnNnnNnOoOo'+
+    'OoOoRrRrRrSsSsSs'+
+    'SsTtTtTtUuUuUuUu'+
+    'UuUuWwYyYZzZzZz.';
+
+function stripDiacritics(str){
+
+    if(noSquiggles==false){
+        return str;
+    }
+
+    var answer='';
+    for(var i=0;i<str.length;i++){
+        var ch=str[i];
+        var chindex=ch.charCodeAt(0)-192;   // Index of character code in the strip string
+        if(chindex>=0 && chindex<stripstring.length){
+            // Character is within our table, so we can strip the accent...
+            var outch=stripstring.charAt(chindex);
+            // ...unless it was shown as a '.'
+            if(outch!='.')ch=outch;
+        }
+        answer+=ch;
+    }
+    return answer;
+}
+
+// http://stackoverflow.com/questions/3446170/escape-string-for-use-in-javascript-regex
+// NOTE: must escape every \ in the export code because of the JabRef Export...
+function escapeRegExp(str) {
+  return str.replace(/[-\[\]\/\{\}\(\)\*\+\?\.\\\^\$\|]/g, "\\$&");
+}
+
+function toggleInfo(articleid,info) {
+
+	var entry = document.getElementById(articleid);
+	var abs = document.getElementById('abs_'+articleid);
+	var rev = document.getElementById('rev_'+articleid);
+	var bib = document.getElementById('bib_'+articleid);
+	
+	if (abs && info == 'abstract') {
+		abs.className.indexOf('noshow') == -1?abs.className = 'abstract noshow':abs.className = 'abstract show';
+	} else if (rev && info == 'comment') {
+		rev.className.indexOf('noshow') == -1?rev.className = 'comment noshow':rev.className = 'comment show';
+	} else if (bib && info == 'bibtex') {
+		bib.className.indexOf('noshow') == -1?bib.className = 'bibtex noshow':bib.className = 'bibtex show';
+	} else { 
+		return;
+	}
+
+	// check if one or the other is available
+	var revshow; var absshow; var bibshow;
+	(abs && abs.className.indexOf('noshow') == -1)? absshow = true: absshow = false;
+	(rev && rev.className.indexOf('noshow') == -1)? revshow = true: revshow = false;	
+	(bib && bib.className.indexOf('noshow') == -1)? bibshow = true: bibshow = false;
+	
+	// highlight original entry
+	if(entry) {
+		if (revshow || absshow || bibshow) {
+		entry.className = 'entry highlight show';
+		} else {
+		entry.className = 'entry show';
+		}
+	}
+	
+	// When there's a combination of abstract/comment/bibtex showing, need to add class for correct styling
+	if(absshow) {
+		(revshow||bibshow)?abs.className = 'abstract nextshow':abs.className = 'abstract';
+	} 
+	if (revshow) {
+		bibshow?rev.className = 'comment nextshow': rev.className = 'comment';
+	}	
+	
+}
+
+function setStatistics (hits) {
+	if(hits < 0) { hits=numEntries; }
+	if(stats) { stats.firstChild.data = hits + '/' + numEntries}
+}
+
+function getTextContent(node) {
+	// Function written by Arve Bersvendsen
+	// http://www.virtuelvis.com
+	
+	if (node.nodeType == 3) {
+	return node.nodeValue;
+	} // text node
+	if (node.nodeType == 1 && node.className != "infolinks") { // element node
+	var text = [];
+	for (var chld = node.firstChild;chld;chld=chld.nextSibling) {
+		text.push(getTextContent(chld));
+	}
+	return text.join("");
+	} return ""; // some other node, won't contain text nodes.
+}
+
+function showAll(){
+	closeAllInfo();
+	for (var i = 0; i < numEntries; i++){ entryRows[i].className = 'entry show'; }
+}
+
+function closeAllInfo(){
+	for (var i=0; i < numInfo; i++){
+		if (infoRows[i].className.indexOf('noshow') ==-1) {
+			infoRows[i].className = infoRows[i].className + ' noshow';
+		}
+	}
+}
+
+function clearQS() {
+	qsfield.value = '';
+	showAll();
+}
+
+function redoQS(){
+	showAll();
+	quickSearch(qsfield);
+}
+
+function updateSetting(obj){
+	var option = obj.id;
+	var checked = obj.value;
+
+	switch(option)
+	 {
+	 case "opt_searchAbs":
+	   searchAbstract=!searchAbstract;
+	   redoQS();
+	   break;
+	 case "opt_searchRev":
+	   searchComment=!searchComment;
+	   redoQS();
+	   break;
+	 case "opt_useRegExp":
+	   searchRegExp=!searchRegExp;
+	   redoQS();
+	   break;
+	 case "opt_noAccents":
+	   noSquiggles=!noSquiggles;
+	   loadTableData();
+	   redoQS();
+	   break;
+	 }
+}
+
+function initPreferences(){
+	if(searchAbstract){document.getElementById("opt_searchAbs").checked = true;}
+	if(searchComment){document.getElementById("opt_searchRev").checked = true;}
+	if(noSquiggles){document.getElementById("opt_noAccents").checked = true;}
+	if(searchRegExp){document.getElementById("opt_useRegExp").checked = true;}
+	
+	if(numAbs==0) {document.getElementById("opt_searchAbs").parentNode.style.display = 'none';}
+	if(numRev==0) {document.getElementById("opt_searchRev").parentNode.style.display = 'none';}
+}
+
+function toggleSettings(){
+	var togglebutton = document.getElementById('showsettings');
+	var settings = document.getElementById('settings');
+	
+	if(settings.className == "hidden"){
+		settings.className = "show";
+		togglebutton.innerText = "close settings";
+		togglebutton.textContent = "close settings";
+	}else{
+		settings.className = "hidden";
+		togglebutton.innerText = "settings...";		
+		togglebutton.textContent = "settings...";
+	}
+}
+
+-->
+</script>
+<style type="text/css">
+/*body { background-color: white; font-family: Arial, sans-serif; font-size: 14px; line-height: 1.2; padding: 1em; color: #2E2E2E; margin: auto 2em; }
+*/
+form#quicksearch { width: auto; border-style: solid; border-color: gray; border-width: 1px 0px; padding: 0.7em 0.5em; display:none; position:relative; }
+span#searchstat {padding-left: 1em;}
+
+div#settings { margin-top:0.7em; /* border-bottom: 1px transparent solid; background-color: #efefef; border: 1px grey solid; */ }
+div#settings ul {margin: 0; padding: 0; }
+div#settings li {margin: 0; padding: 0 1em 0 0; display: inline; list-style: none; }
+div#settings li + li { border-left: 2px #efefef solid; padding-left: 0.5em;}
+div#settings input { margin-bottom: 0px;}
+
+div#settings.hidden {display:none;}
+
+#showsettings { border: 1px grey solid; padding: 0 0.5em; float:right; line-height: 1.6em; text-align: right; }
+#showsettings:hover { cursor: pointer; }
+
+.invalidsearch { background-color: red; }
+input[type="button"] { background-color: #efefef; border: 1px #2E2E2E solid;}
+
+table { width: 100%; empty-cells: show; border-spacing: 0em 0.2em; margin: 0em 0em; border-style: none; }
+th, td { border: 1px gray solid; border-width: 1px 1px; padding: 0.5em; vertical-align: top; text-align: left; }
+th { background-color: #efefef; }
+td + td, th + th { border-left: none; }
+
+td a { color: navy; text-decoration: none; }
+td a:hover  { text-decoration: underline; }
+
+tr.noshow { display: none;}
+tr.highlight td { background-color: #EFEFEF; border-top: 2px #2E2E2E solid; font-weight: bold; }
+tr.abstract td, tr.comment td, tr.bibtex td { background-color: #EFEFEF; text-align: justify; border-bottom: 2px #2E2E2E solid; }
+tr.nextshow td { border-bottom: 1px gray solid; }
+
+tr.bibtex pre { width: 100%; overflow: auto; white-space: pre-wrap;}
+p.infolinks { margin: 0.3em 0em 0em 0em; padding: 0px; }
+
+@media print {
+	p.infolinks, #qs_settings, #quicksearch, t.bibtex { display: none !important; }
+	tr { page-break-inside: avoid; }
+}
+</style>
+</head>
+<body>
+<table summary="Table for page layout." id="tlayout">
+<tr valign="top">
+<td id="layout-menu">
+<div class="menu-category">Chunlei Li</div>
+<div class="menu-item"><a href="https://org.uib.no/selmer/people/chunlei.li/index.html">Home</a></div>
+<div class="menu-item"><a href="https://org.uib.no/selmer/people/chunlei.li/teaching.html">Teaching</a></div>
+<div class="menu-item"><a href="https://org.uib.no/selmer/people/chunlei.li/supervision.html">Supervision</a></div>
+<div class="menu-category">Research</div>
+<div class="menu-item"><a href="https://org.uib.no/selmer/people/chunlei.li/publication.html" class="current">Publications</a></div>
+<div class="menu-item"><a href="https://org.uib.no/selmer/people/chunlei.li/academy.html">Academic&nbsp;Activities</a></div>
+<div class="menu-category">Selmer Center</div>
+<div class="menu-item"><a href="http://www.uib.no/en/rg/selmer">Home</a></div>
+<div class="menu-item"><a href="https://www.uib.no/en/rg/selmer/56065/selected-publications-selmer-center">Publications</a></div>
+</td>
+<td id="layout-content">
+<div id="toptitle">
+<h1> Publications</h1>
+</div>
+<p>My major research interests lie in the area of information technology and communication (ICT), paritucluarly on </p>
+<ul>
+<li><p><b>waveform design for wireless communications</b>: waveforms/signals with desirable periodic and aperiodic correlations</p>
+</li>
+<li><p><b>feedback shift register (FRS) sequences</b>: the max-length FSR sequences and complexity measures of pseudo-random sequences</p>
+</li>
+<li><p><b>coding theory</b>: algebraic codes in Hamming metric and rank metric and their applications in communications, storage and cryptography</p>
+</li>
+<li><p><b>cryptography</b>: symmetric cryptographic primitives, homomorphic encryptions, searchable encryptions, code-based cryptography </p>
+</li>
+<li><p><b>blockchain</b>: design and applications of blockchain                                                  </p>
+</li>
+<li><p><b>discrete mathematics</b>: permutations polynomials and cryptographically strong functions</p>
+</li>
+</ul>
+
+<form action="" id="quicksearch">
+<input type="text" id="qs_field" autocomplete="off" placeholder="Type to search..." /> <input type="button" onclick="clearQS()" value="clear" />
+<span id="searchstat">Matching entries: <span id="stat">0</span></span>
+<div id="showsettings" onclick="toggleSettings()">Settings...</div>
+<div id="settings" class="hidden">
+<ul>
+<li><input type="checkbox" class="search_setting" id="opt_searchAbs" onchange="updateSetting(this)"><label for="opt_searchAbs"> include abstract</label></li>
+<li><input type="checkbox" class="search_setting" id="opt_searchRev" onchange="updateSetting(this)"><label for="opt_searchRev"> include comment</label></li>
+<li><input type="checkbox" class="search_setting" id="opt_useRegExp" onchange="updateSetting(this)"><label for="opt_useRegExp"> use RegExp</label></li>
+<li><input type="checkbox" class="search_setting" id="opt_noAccents" onchange="updateSetting(this)"><label for="opt_noAccents"> ignore accents</label></li>
+</ul>
+</div>
+</form>
+<table id="qs_table" border="1">
+<thead><tr><th width="20%">Author</th><th width="30%">Title</th><th width="5%">Year</th><th width="30%">Journal/Proceedings</th><th width="10%">Reftype</th><th width="5%">DOI/URL</th></tr></thead>
+<tbody><tr id="DBLP:conf/isit/FranchL23" class="entry">
+	<td>Franch, E. and Li, C.</td>
+	<td>Two new algorithms for error support recovery of low rank parity check codes <p class="infolinks">[<a href="javascript:toggleInfo('DBLP:conf/isit/FranchL23','abstract')">Abstract</a>] [<a href="javascript:toggleInfo('DBLP:conf/isit/FranchL23','bibtex')">BibTeX</a>]</p></td>
+	<td>2023</td>
+	<td>IEEE International Symposium on Information Theory, ISIT 2023, Taipei, Taiwan, June 25-30, 2023, pp. 2368-2373&nbsp;</td>
+	<td>inproceedings</td>
+	<td><a href="https://doi.org/10.1109/ISIT54713.2023.10206683">DOI</a> <a href="https://doi.org/10.1109/ISIT54713.2023.10206683">URL</a>&nbsp;</td>
+</tr>
+<tr id="abs_DBLP:conf/isit/FranchL23" class="abstract noshow">
+	<td colspan="6"><b>Abstract</b>: Due to their weak algebraic structure, low rank parity check (LRPC) codes have been employed in several post-quantum cryptographic schemes. In this paper we propose new improved decoding algorithms for [ n,text k ]_q^m LRPC codes of dual rank weight d. The proposed algorithms can efficiently decode LRPC codes with the parameters satisfying n − k = rd − c, where r is the dimension of the error support and c ≤ d − 2. They outperform the original decoding algorithm of LRPC codes when d > 2 and allow for decoding LRPC codes with a higher code rate and smaller values m.</td>
+</tr>
+<tr id="bib_DBLP:conf/isit/FranchL23" class="bibtex noshow">
+<td colspan="6"><b>BibTeX</b>:
+<pre>
+@inproceedings{DBLP:conf/isit/FranchL23,
+  author = {Ermes Franch and Chunlei Li},
+  title = {Two new algorithms for error support recovery of low rank parity check codes},
+  booktitle = {IEEE International Symposium on Information Theory, ISIT 2023, Taipei, Taiwan, June 25-30, 2023},
+  publisher = {IEEE},
+  year = {2023},
+  pages = {2368--2373},
+  url = {https://doi.org/10.1109/ISIT54713.2023.10206683},
+  doi = {https://doi.org/10.1109/ISIT54713.2023.10206683}
+}
+</pre></td>
+</tr>
+<tr id="DBLP:conf/isit/PaiLLC23" class="entry">
+	<td>Pai, C., Liu, Z.L., Li, C. and Chen, C.</td>
+	<td>Sparse Complementary Pairs with Additional Aperiodic ZCZ Property <p class="infolinks">[<a href="javascript:toggleInfo('DBLP:conf/isit/PaiLLC23','abstract')">Abstract</a>] [<a href="javascript:toggleInfo('DBLP:conf/isit/PaiLLC23','bibtex')">BibTeX</a>]</p></td>
+	<td>2023</td>
+	<td>IEEE International Symposium on Information Theory, ISIT 2023, Taipei, Taiwan, June 25-30, 2023, pp. 672-677&nbsp;</td>
+	<td>inproceedings</td>
+	<td><a href="https://doi.org/10.1109/ISIT54713.2023.10206805">DOI</a> <a href="https://doi.org/10.1109/ISIT54713.2023.10206805">URL</a>&nbsp;</td>
+</tr>
+<tr id="abs_DBLP:conf/isit/PaiLLC23" class="abstract noshow">
+	<td colspan="6"><b>Abstract</b>: This paper presents a novel class of complex-valued sparse complementary pairs (SCPs), each consisting of a number of zero values and with additional zero-correlation zone (ZCZ) property for the aperiodic autocorrelations and crosscorrelations of the two constituent sequences. Direct constructions of SCPs and their mutually-orthogonal mates based on restricted generalized Boolean functions are proposed. It is shown that such SCPs exist with arbitrary lengths and controllable sparsity levels, making them a disruptive sequence candidate for modern low-complexity, low-latency, and low-storage signal processing applications.</td>
+</tr>
+<tr id="bib_DBLP:conf/isit/PaiLLC23" class="bibtex noshow">
+<td colspan="6"><b>BibTeX</b>:
+<pre>
+@inproceedings{DBLP:conf/isit/PaiLLC23,
+  author = {Cheng-Yu Pai and Zi Long Liu and Chunlei Li and Chao-Yu Chen},
+  title = {Sparse Complementary Pairs with Additional Aperiodic ZCZ Property},
+  booktitle = {IEEE International Symposium on Information Theory, ISIT 2023, Taipei, Taiwan, June 25-30, 2023},
+  publisher = {IEEE},
+  year = {2023},
+  pages = {672--677},
+  url = {https://doi.org/10.1109/ISIT54713.2023.10206805},
+  doi = {https://doi.org/10.1109/ISIT54713.2023.10206805}
+}
+</pre></td>
+</tr>
+<tr id="DBLP:conf/itw/FranchGL23" class="entry">
+	<td>Franch, E., Gaborit, P. and Li, C.</td>
+	<td>Generalized low rank parity check codes <p class="infolinks">[<a href="javascript:toggleInfo('DBLP:conf/itw/FranchGL23','abstract')">Abstract</a>] [<a href="javascript:toggleInfo('DBLP:conf/itw/FranchGL23','bibtex')">BibTeX</a>]</p></td>
+	<td>2023</td>
+	<td>IEEE Information Theory Workshop, ITW 2023, Saint-Malo, France, April 23-28, 2023, pp. 248-253&nbsp;</td>
+	<td>inproceedings</td>
+	<td><a href="https://doi.org/10.1109/ITW55543.2023.10160243">DOI</a> <a href="https://doi.org/10.1109/ITW55543.2023.10160243">URL</a>&nbsp;</td>
+</tr>
+<tr id="abs_DBLP:conf/itw/FranchGL23" class="abstract noshow">
+	<td colspan="6"><b>Abstract</b>: In this work we propose a family of Fq-linear lowrank parity check (LRPC) codes based on a bilinear product over Fqm defined by a generic 3-tensor over Fq. A particular choice of this tensor corresponds to the classical Fqm-linear LRPC codes; and other tensors yield Fq-linear codes, which, with some caveats, can be efficiently decoded with the same idea of decoding LRPC codes. The proposed codes contribute to the diversity of rank metric codes for cryptographic applications, particularly for the cases where attacks utilize Fqm-linearity to reduce decoding complexity.</td>
+</tr>
+<tr id="bib_DBLP:conf/itw/FranchGL23" class="bibtex noshow">
+<td colspan="6"><b>BibTeX</b>:
+<pre>
+@inproceedings{DBLP:conf/itw/FranchGL23,
+  author = {Ermes Franch and Philippe Gaborit and Chunlei Li},
+  title = {Generalized low rank parity check codes},
+  booktitle = {IEEE Information Theory Workshop, ITW 2023, Saint-Malo, France, April 23-28, 2023},
+  publisher = {IEEE},
+  year = {2023},
+  pages = {248--253},
+  url = {https://doi.org/10.1109/ITW55543.2023.10160243},
+  doi = {https://doi.org/10.1109/ITW55543.2023.10160243}
+}
+</pre></td>
+</tr>
+<tr id="DBLP:journals/jcta/Li0HQ23" class="entry">
+	<td>Li, K., Li, C., Helleseth, T. and Qu, L.</td>
+	<td>Further investigations on permutation based constructions of bent functions <p class="infolinks">[<a href="javascript:toggleInfo('DBLP:journals/jcta/Li0HQ23','abstract')">Abstract</a>] [<a href="javascript:toggleInfo('DBLP:journals/jcta/Li0HQ23','bibtex')">BibTeX</a>]</p></td>
+	<td>2023</td>
+	<td>J. Comb. Theory, Ser. A<br/>Vol. 199, pp. 105779&nbsp;</td>
+	<td>article</td>
+	<td><a href="https://doi.org/10.1016/j.jcta.2023.105779">DOI</a> <a href="https://doi.org/10.1016/j.jcta.2023.105779">URL</a>&nbsp;</td>
+</tr>
+<tr id="abs_DBLP:journals/jcta/Li0HQ23" class="abstract noshow">
+	<td colspan="6"><b>Abstract</b>: Constructing bent functions by composing a Boolean function with a permutation was introduced by Hou and Langevin in 1997. The approach appears simple but heavily depends on the construction of desirable permutations. In this paper, we further study this approach by investigating the exponential sums of certain monomials and permutations. We propose several classes of bent functions from quadratic permutations and permutations with (generalized) Niho exponents, and also a class of bent functions from a generalization of the Maiorana-McFarland class. The relations among the proposed bent functions and the known families of bent function are studied. Numerical results show that our constructions include bent functions that are not contained in the completed Maiorana-McFarland class M#, the class PSap or the class H.</td>
+</tr>
+<tr id="bib_DBLP:journals/jcta/Li0HQ23" class="bibtex noshow">
+<td colspan="6"><b>BibTeX</b>:
+<pre>
+@article{DBLP:journals/jcta/Li0HQ23,
+  author = {Kangquan Li and Chunlei Li and Tor Helleseth and Longjiang Qu},
+  title = {Further investigations on permutation based constructions of bent functions},
+  journal = {J. Comb. Theory, Ser. A},
+  year = {2023},
+  volume = {199},
+  pages = {105779},
+  url = {https://doi.org/10.1016/j.jcta.2023.105779},
+  doi = {https://doi.org/10.1016/j.jcta.2023.105779}
+}
+</pre></td>
+</tr>
+<tr id="DBLP:conf/iwsda/LiLS22" class="entry">
+	<td>Li, D., Li, C. and Sarkar, P.</td>
+	<td>Asymptotically Optimal Quasi-Complementary Code Sets of Length p<sub>1</sub><sup>m<sub>1</sub></sup>p<sub>2</sub><sup>m<sub>2</sup></sup> <p class="infolinks">[<a href="javascript:toggleInfo('DBLP:conf/iwsda/LiLS22','abstract')">Abstract</a>] [<a href="javascript:toggleInfo('DBLP:conf/iwsda/LiLS22','bibtex')">BibTeX</a>]</p></td>
+	<td>2022</td>
+	<td>10th International Workshop on Signal Design and Its Applications in Communications, IWSDA 2022, Colchester, UK, August 1-5, 2022, pp. 1-5&nbsp;</td>
+	<td>inproceedings</td>
+	<td><a href="https://doi.org/10.1109/IWSDA50346.2022.9870581">DOI</a> <a href="https://doi.org/10.1109/IWSDA50346.2022.9870581">URL</a>&nbsp;</td>
+</tr>
+<tr id="abs_DBLP:conf/iwsda/LiLS22" class="abstract noshow">
+	<td colspan="6"><b>Abstract</b>: In this paper we propose a construction of quasi-complementary code sets (QCCSs) of length p1m1p2m2, where p1,p2 are primes and m1, m2 are positive integers, and show that the proposed QCCSs achieve optimality asymptotically. The construction generalizes a recent work by Sarkar et al. on QCCSs of length pm, which has more flexible alphabet size.</td>
+</tr>
+<tr id="bib_DBLP:conf/iwsda/LiLS22" class="bibtex noshow">
+<td colspan="6"><b>BibTeX</b>:
+<pre>
+@inproceedings{DBLP:conf/iwsda/LiLS22,
+  author = {Dian Li and Chunlei Li and Palash Sarkar},
+  title = {Asymptotically Optimal Quasi-Complementary Code Sets of Length 
+  booktitle = {10th International Workshop on Signal Design and Its Applications in Communications, IWSDA 2022, Colchester, UK, August 1-5, 2022},
+  publisher = {IEEE},
+  year = {2022},
+  pages = {1--5},
+  url = {https://doi.org/10.1109/IWSDA50346.2022.9870581},
+  doi = {https://doi.org/10.1109/IWSDA50346.2022.9870581}
+}
+</pre></td>
+</tr>
+<tr id="DBLP:journals/ccds/KadirLZ22" class="entry">
+	<td>Kadir, W.K., Li, C. and Zullo, F.</td>
+	<td>Encoding and decoding of several optimal rank metric codes <p class="infolinks">[<a href="javascript:toggleInfo('DBLP:journals/ccds/KadirLZ22','abstract')">Abstract</a>] [<a href="javascript:toggleInfo('DBLP:journals/ccds/KadirLZ22','bibtex')">BibTeX</a>]</p></td>
+	<td>2022</td>
+	<td>Cryptogr. Commun.<br/>Vol. 14(6), pp. 1281-1300&nbsp;</td>
+	<td>article</td>
+	<td><a href="https://doi.org/10.1007/s12095-022-00578-3">DOI</a> <a href="https://doi.org/10.1007/s12095-022-00578-3">URL</a>&nbsp;</td>
+</tr>
+<tr id="abs_DBLP:journals/ccds/KadirLZ22" class="abstract noshow">
+	<td colspan="6"><b>Abstract</b>: This paper presents encoding and decoding algorithms for several families of optimal rank metric codes whose codes are in restricted forms of symmetric, alternating and Hermitian matrices. First, we show the evaluation encoding is the right choice for these codes and then we provide easily reversible encoding methods for each family. Later unique decoding algorithms for the codes are described. The decoding algorithms are interpolation-based and can uniquely correct errors for each code with rank up to (d − 1)/2 in polynomial-time, where d is the minimum distance of the code.</td>
+</tr>
+<tr id="bib_DBLP:journals/ccds/KadirLZ22" class="bibtex noshow">
+<td colspan="6"><b>BibTeX</b>:
+<pre>
+@article{DBLP:journals/ccds/KadirLZ22,
+  author = {Wrya K. Kadir and Chunlei Li and Ferdinando Zullo},
+  title = {Encoding and decoding of several optimal rank metric codes},
+  journal = {Cryptogr. Commun.},
+  year = {2022},
+  volume = {14},
+  number = {6},
+  pages = {1281--1300},
+  url = {https://doi.org/10.1007/s12095-022-00578-3},
+  doi = {https://doi.org/10.1007/s12095-022-00578-3}
+}
+</pre></td>
+</tr>
+<tr id="DBLP:journals/ffa/ManXLH22" class="entry">
+	<td>Man, Y., Xia, Y., Li, C. and Helleseth, T.</td>
+	<td>On the differential properties of the power mapping xpm+2 <p class="infolinks">[<a href="javascript:toggleInfo('DBLP:journals/ffa/ManXLH22','abstract')">Abstract</a>] [<a href="javascript:toggleInfo('DBLP:journals/ffa/ManXLH22','bibtex')">BibTeX</a>]</p></td>
+	<td>2022</td>
+	<td>Finite Fields Their Appl.<br/>Vol. 84, pp. 102100&nbsp;</td>
+	<td>article</td>
+	<td><a href="https://doi.org/10.1016/j.ffa.2022.102100">DOI</a> <a href="https://doi.org/10.1016/j.ffa.2022.102100">URL</a>&nbsp;</td>
+</tr>
+<tr id="abs_DBLP:journals/ffa/ManXLH22" class="abstract noshow">
+	<td colspan="6"><b>Abstract</b>: Let m be a positive integer and p a prime. In this paper, we investigate the differential properties of the power mapping xpm+2 over Fpn, where n=2m or n=2m−1. For the case n=2m, by transforming the derivative equation of xpm+2 and studying some related equations, we completely determine the differential spectrum of this power mapping. For the case n=2m−1, the derivative equation can be transformed to a polynomial of higher degree p+3. The problem is more difficult and we only obtain partial results about the differential spectrum of xpm+2.</td>
+</tr>
+<tr id="bib_DBLP:journals/ffa/ManXLH22" class="bibtex noshow">
+<td colspan="6"><b>BibTeX</b>:
+<pre>
+@article{DBLP:journals/ffa/ManXLH22,
+  author = {Yuying Man and Yongbo Xia and Chunlei Li and Tor Helleseth},
+  title = {On the differential properties of the power mapping xpm+2},
+  journal = {Finite Fields Their Appl.},
+  year = {2022},
+  volume = {84},
+  pages = {102100},
+  url = {https://doi.org/10.1016/j.ffa.2022.102100},
+  doi = {https://doi.org/10.1016/j.ffa.2022.102100}
+}
+</pre></td>
+</tr>
+<tr id="DBLP:journals/tit/LiZLQ22" class="entry">
+	<td>Li, K., Zhou, Y., Li, C. and Qu, L.</td>
+	<td>Two New Families of Quadratic APN Functions <p class="infolinks">[<a href="javascript:toggleInfo('DBLP:journals/tit/LiZLQ22','abstract')">Abstract</a>] [<a href="javascript:toggleInfo('DBLP:journals/tit/LiZLQ22','bibtex')">BibTeX</a>]</p></td>
+	<td>2022</td>
+	<td>IEEE Trans. Inf. Theory<br/>Vol. 68(7), pp. 4761-4769&nbsp;</td>
+	<td>article</td>
+	<td><a href="https://doi.org/10.1109/TIT.2022.3157810">DOI</a> <a href="https://doi.org/10.1109/TIT.2022.3157810">URL</a>&nbsp;</td>
+</tr>
+<tr id="abs_DBLP:journals/tit/LiZLQ22" class="abstract noshow">
+	<td colspan="6"><b>Abstract</b>: In this paper, we present two new families of APN functions. The first family is in bivariate form <br> (x^3+xy^2+ y^3+xy, x^5+x^4y+y^5+xy+x^2y^2 ) over mathbb F_2^m^2. It is obtained by adding certain terms of the form x_i(a_ix^2^iy^2^i,b_ix^2^iy^2^i to a family of APN functions recently proposed by Gölo&amp;gcaron;lu. The<br> vphantom _&int; _&int;  <br> second family has the form <br> L(z)^2^m+1+vz^2^m+1 <br> over <br> mathbb F_2^3m <br>, which generalizes a family of APN functions by Bracken et al. from 2011. By calculating the <br> &Gamma;  <br>-rank of the constructed APN functions over <br> mathbb F_2^8 <br> and <br> mathbb F_2^9 <br>, we demonstrate that the two families are CCZ-inequivalent to all known families. In addition, the two new families cover two known sporadic APN instances over <br> mathbb F_2^8 <br> and <br> mathbb F_2^9$ <br>, which were found by Edel and Pott in 2009 and by Beierle and Leander in 2021, respectively.</td>
+</tr>
+<tr id="bib_DBLP:journals/tit/LiZLQ22" class="bibtex noshow">
+<td colspan="6"><b>BibTeX</b>:
+<pre>
+@article{DBLP:journals/tit/LiZLQ22,
+  author = {Kangquan Li and Yue Zhou and Chunlei Li and Longjiang Qu},
+  title = {Two New Families of Quadratic APN Functions},
+  journal = {IEEE Trans. Inf. Theory},
+  year = {2022},
+  volume = {68},
+  number = {7},
+  pages = {4761--4769},
+  url = {https://doi.org/10.1109/TIT.2022.3157810},
+  doi = {https://doi.org/10.1109/TIT.2022.3157810}
+}
+</pre></td>
+</tr>
+<tr id="DBLP:journals/tit/YanX0HXL22" class="entry">
+	<td>Yan, H., Xia, Y., Li, C., Helleseth, T., Xiong, M. and Luo, J.</td>
+	<td>The Differential Spectrum of the Power Mapping x<sup>p<sup>n</sup>-3</sup> <p class="infolinks">[<a href="javascript:toggleInfo('DBLP:journals/tit/YanX0HXL22','abstract')">Abstract</a>] [<a href="javascript:toggleInfo('DBLP:journals/tit/YanX0HXL22','bibtex')">BibTeX</a>]</p></td>
+	<td>2022</td>
+	<td>IEEE Trans. Inf. Theory<br/>Vol. 68(8), pp. 5535-5547&nbsp;</td>
+	<td>article</td>
+	<td><a href="https://doi.org/10.1109/TIT.2022.3162334">DOI</a> <a href="https://doi.org/10.1109/TIT.2022.3162334">URL</a>&nbsp;</td>
+</tr>
+<tr id="abs_DBLP:journals/tit/YanX0HXL22" class="abstract noshow">
+	<td colspan="6"><b>Abstract</b>: Let n be a positive integer and p a prime. The power mapping x^p^n-3 over mathbb F-pn has desirable differential properties, and its differential spectra for p=2,,3 have been determined. In this paper, for any odd prime p , by investigating certain quadratic character sums and some equations over mathbb F-p^n , we determine the differential spectrum of x^p^n-3 with a unified approach. The obtained result shows that for any given odd prime p , the differential spectrum can be expressed explicitly in terms of n. Compared with previous results, a special elliptic curve over mathbb F-p plays an important role in our computation for the general case p ge 5.</td>
+</tr>
+<tr id="bib_DBLP:journals/tit/YanX0HXL22" class="bibtex noshow">
+<td colspan="6"><b>BibTeX</b>:
+<pre>
+@article{DBLP:journals/tit/YanX0HXL22,
+  author = {Haode Yan and Yongbo Xia and Chunlei Li and Tor Helleseth and Maosheng Xiong and Jinquan Luo},
+  title = {The Differential Spectrum of the Power Mapping x(^p\({}^{\mbox{n}}\))(^-3)},
+  journal = {IEEE Trans. Inf. Theory},
+  year = {2022},
+  volume = {68},
+  number = {8},
+  pages = {5535--5547},
+  url = {https://doi.org/10.1109/TIT.2022.3162334},
+  doi = {https://doi.org/10.1109/TIT.2022.3162334}
+}
+</pre></td>
+</tr>
+<tr id="DBLP:conf/isit/Kadir0Z21" class="entry">
+	<td>Kadir, W.K., Li, C. and Zullo, F.</td>
+	<td>On interpolation-based decoding of a class of maximum rank distance codes <p class="infolinks">[<a href="javascript:toggleInfo('DBLP:conf/isit/Kadir0Z21','abstract')">Abstract</a>] [<a href="javascript:toggleInfo('DBLP:conf/isit/Kadir0Z21','bibtex')">BibTeX</a>]</p></td>
+	<td>2021</td>
+	<td>IEEE International Symposium on Information Theory, ISIT 2021, Melbourne, Australia, July 12-20, 2021, pp. 31-36&nbsp;</td>
+	<td>inproceedings</td>
+	<td><a href="https://doi.org/10.1109/ISIT45174.2021.9517980">DOI</a> <a href="https://doi.org/10.1109/ISIT45174.2021.9517980">URL</a>&nbsp;</td>
+</tr>
+<tr id="abs_DBLP:conf/isit/Kadir0Z21" class="abstract noshow">
+	<td colspan="6"><b>Abstract</b>: In this paper we present an interpolation-based decoding algorithm to decode a family of maximum rank distance codes proposed recently by Trombetti and Zhou. We employ the properties of the Dickson matrix associated with a linearized polynomial with a given rank and the modified Berlekamp-Massey algorithm in decoding. When the rank of the error vector attains the unique decoding radius, the problem is converted to solving a quadratic polynomial, which ensures that the proposed decoding algorithm has polynomial-time complexity.</td>
+</tr>
+<tr id="bib_DBLP:conf/isit/Kadir0Z21" class="bibtex noshow">
+<td colspan="6"><b>BibTeX</b>:
+<pre>
+@inproceedings{DBLP:conf/isit/Kadir0Z21,
+  author = {Wrya K. Kadir and Chunlei Li and Ferdinando Zullo},
+  title = {On interpolation-based decoding of a class of maximum rank distance codes},
+  booktitle = {IEEE International Symposium on Information Theory, ISIT 2021, Melbourne, Australia, July 12-20, 2021},
+  publisher = {IEEE},
+  year = {2021},
+  pages = {31--36},
+  url = {https://doi.org/10.1109/ISIT45174.2021.9517980},
+  doi = {https://doi.org/10.1109/ISIT45174.2021.9517980}
+}
+</pre></td>
+</tr>
+<tr id="DBLP:conf/latincrypt/CanteautK00LQW21" class="entry">
+	<td>Canteaut, A., K&ouml;lsch, L., Li, C., Li, C., Li, K., Qu, L. and Wiemer, F.</td>
+	<td>Autocorrelations of Vectorial Boolean Functions <p class="infolinks">[<a href="javascript:toggleInfo('DBLP:conf/latincrypt/CanteautK00LQW21','abstract')">Abstract</a>] [<a href="javascript:toggleInfo('DBLP:conf/latincrypt/CanteautK00LQW21','bibtex')">BibTeX</a>]</p></td>
+	<td>2021</td>
+	<td><br/>Vol. 12912Progress in Cryptology - LATINCRYPT 2021 - 7th International Conference on Cryptology and Information Security in Latin America, Bogot&aacute;, Colombia, October 6-8, 2021, Proceedings, pp. 233-253&nbsp;</td>
+	<td>inproceedings</td>
+	<td><a href="https://doi.org/10.1007/978-3-030-88238-9%5C_%7B1%7D%7B2%7D">DOI</a> <a href="https://doi.org/10.1007/978-3-030-88238-9\_12">URL</a>&nbsp;</td>
+</tr>
+<tr id="abs_DBLP:conf/latincrypt/CanteautK00LQW21" class="abstract noshow">
+	<td colspan="6"><b>Abstract</b>: Recently, Bar-On et al. introduced at Eurocrypt’19 a new tool, called the differential-linear connectivity table (DLCT), which allows for taking into account the dependency between the two subciphers and involved in differential-linear attacks.<p>This paper presents a theoretical characterization of the DLCT, which corresponds to an autocorrelation table (ACT) of a vectorial Boolean function. We further provide some new theoretical results on ACTs of vectorial Boolean functions.</td>
+</tr>
+<tr id="bib_DBLP:conf/latincrypt/CanteautK00LQW21" class="bibtex noshow">
+<td colspan="6"><b>BibTeX</b>:
+<pre>
+@inproceedings{DBLP:conf/latincrypt/CanteautK00LQW21,
+  author = {Anne Canteaut and Lukas K&ouml;lsch and Chao Li and Chunlei Li and Kangquan Li and Longjiang Qu and Friedrich Wiemer},
+  title = {Autocorrelations of Vectorial Boolean Functions},
+  booktitle = {Progress in Cryptology - LATINCRYPT 2021 - 7th International Conference on Cryptology and Information Security in Latin America, Bogot&aacute;, Colombia, October 6-8, 2021, Proceedings},
+  publisher = {Springer},
+  year = {2021},
+  volume = {12912},
+  pages = {233--253},
+  url = {https://doi.org/10.1007/978-3-030-88238-9_12},
+  doi = {https://doi.org/10.1007/978-3-030-88238-9%5C_%7B1%7D%7B2%7D}
+}
+</pre></td>
+</tr>
+<tr id="DBLP:journals/concurrency/YangLM21" class="entry">
+	<td>Yang, G., Li, C. and Marstein, K.E.</td>
+	<td>A blockchain-based architecture for securing electronic health record systems <p class="infolinks">[<a href="javascript:toggleInfo('DBLP:journals/concurrency/YangLM21','abstract')">Abstract</a>] [<a href="javascript:toggleInfo('DBLP:journals/concurrency/YangLM21','bibtex')">BibTeX</a>]</p></td>
+	<td>2021</td>
+	<td>Concurr. Comput. Pract. Exp.<br/>Vol. 33(14)&nbsp;</td>
+	<td>article</td>
+	<td><a href="https://doi.org/10.1002/cpe.5479">DOI</a> <a href="https://doi.org/10.1002/cpe.5479">URL</a>&nbsp;</td>
+</tr>
+<tr id="abs_DBLP:journals/concurrency/YangLM21" class="abstract noshow">
+	<td colspan="6"><b>Abstract</b>: This paper presents a blockchain-based architecture for our current electronic health record (EHR) systems. Being built on top of existing databases maintained by health providers, the architecture implements a blockchain solution to ensure the integrity of data records and improve interoperability of the systems through tracking all events that happen to the data in the databases. In this proposed architecture, we also introduce a new incentive mechanism for the creation of new blocks on the blockchain. The architecture is independent of any specific blockchain platforms and open to further extensions; hence, it potentially fits in with other electronic record systems that require protection against data misuse.</td>
+</tr>
+<tr id="bib_DBLP:journals/concurrency/YangLM21" class="bibtex noshow">
+<td colspan="6"><b>BibTeX</b>:
+<pre>
+@article{DBLP:journals/concurrency/YangLM21,
+  author = {Guang Yang and Chunlei Li and Kjell E. Marstein},
+  title = {A blockchain-based architecture for securing electronic health record systems},
+  journal = {Concurr. Comput. Pract. Exp.},
+  year = {2021},
+  volume = {33},
+  number = {14},
+  url = {https://doi.org/10.1002/cpe.5479},
+  doi = {https://doi.org/10.1002/cpe.5479}
+}
+</pre></td>
+</tr>
+<tr id="DBLP:journals/dcc/LiLHQ21" class="entry">
+	<td>Li, K., Li, C., Helleseth, T. and Qu, L.</td>
+	<td>Cryptographically strong permutations from the butterfly structure <p class="infolinks">[<a href="javascript:toggleInfo('DBLP:journals/dcc/LiLHQ21','abstract')">Abstract</a>] [<a href="javascript:toggleInfo('DBLP:journals/dcc/LiLHQ21','bibtex')">BibTeX</a>]</p></td>
+	<td>2021</td>
+	<td>Des. Codes Cryptogr.<br/>Vol. 89(4), pp. 737-761&nbsp;</td>
+	<td>article</td>
+	<td><a href="https://doi.org/10.1007/s10623-020-00837-5">DOI</a> <a href="https://doi.org/10.1007/s10623-020-00837-5">URL</a>&nbsp;</td>
+</tr>
+<tr id="abs_DBLP:journals/dcc/LiLHQ21" class="abstract noshow">
+	<td colspan="6"><b>Abstract</b>: Boomerang connectivity table is a new tool to characterize the vulnerability of cryptographic functions against boomerang attacks. Consequently, a cryptographic function is desired to have boomerang uniformity as low as its differential uniformity. Based on generalized butterfly structures recently introduced by Canteaut, Duval and Perrin, this paper presents infinite families of permutations of for a positive odd integer n, which have the best known nonlinearity and boomerang uniformity 4. Both open and closed butterfly structures are considered. The open butterflies, according to experimental results, appear not to produce permutations with boomerang uniformity 4. On the other hand, from the closed butterflies we derive a condition on coefficients such that the functions permutate GF(2^n)^2 and have boomerang uniformity 4.</td>
+</tr>
+<tr id="bib_DBLP:journals/dcc/LiLHQ21" class="bibtex noshow">
+<td colspan="6"><b>BibTeX</b>:
+<pre>
+@article{DBLP:journals/dcc/LiLHQ21,
+  author = {Kangquan Li and Chunlei Li and Tor Helleseth and Longjiang Qu},
+  title = {Cryptographically strong permutations from the butterfly structure},
+  journal = {Des. Codes Cryptogr.},
+  year = {2021},
+  volume = {89},
+  number = {4},
+  pages = {737--761},
+  url = {https://doi.org/10.1007/s10623-020-00837-5},
+  doi = {https://doi.org/10.1007/s10623-020-00837-5}
+}
+</pre></td>
+</tr>
+<tr id="DBLP:journals/tit/HellesethKL21" class="entry">
+	<td>Helleseth, T., Katz, D.J. and Li, C.</td>
+	<td>The Resolution of Niho's Last Conjecture Concerning Sequences, Codes, and Boolean Functions <p class="infolinks">[<a href="javascript:toggleInfo('DBLP:journals/tit/HellesethKL21','abstract')">Abstract</a>] [<a href="javascript:toggleInfo('DBLP:journals/tit/HellesethKL21','bibtex')">BibTeX</a>]</p></td>
+	<td>2021</td>
+	<td>IEEE Trans. Inf. Theory<br/>Vol. 67(10), pp. 6952-6962&nbsp;</td>
+	<td>article</td>
+	<td><a href="https://doi.org/10.1109/TIT.2021.3098342">DOI</a> <a href="https://doi.org/10.1109/TIT.2021.3098342">URL</a>&nbsp;</td>
+</tr>
+<tr id="abs_DBLP:journals/tit/HellesethKL21" class="abstract noshow">
+	<td colspan="6"><b>Abstract</b>: A new method is used to resolve a long-standing conjecture of Niho concerning the crosscorrelation spectrum of a pair of maximum length linear recursive sequences of length 2 2m -1 with relative decimation d=2 m+2 -3, where m is even. The result indicates that there are at most five distinct crosscorrelation values. Equivalently, the result indicates that there are at most five distinct values in the Walsh spectrum of the power permutation f(x)=x d over a finite field of order 2 2m and at most five distinct nonzero weights in the cyclic code of length 2 2m -1 with two primitive nonzeros α and α d . The method used to obtain this result proves constraints on the number of roots that certain seventh degree polynomials can have on the unit circle of a finite field. The method also works when m is odd, in which case the associated crosscorrelation and Walsh spectra have at most six distinct values.</td>
+</tr>
+<tr id="bib_DBLP:journals/tit/HellesethKL21" class="bibtex noshow">
+<td colspan="6"><b>BibTeX</b>:
+<pre>
+@article{DBLP:journals/tit/HellesethKL21,
+  author = {Tor Helleseth and Daniel J. Katz and Chunlei Li},
+  title = {The Resolution of Niho's Last Conjecture Concerning Sequences, Codes, and Boolean Functions},
+  journal = {IEEE Trans. Inf. Theory},
+  year = {2021},
+  volume = {67},
+  number = {10},
+  pages = {6952--6962},
+  url = {https://doi.org/10.1109/TIT.2021.3098342},
+  doi = {https://doi.org/10.1109/TIT.2021.3098342}
+}
+</pre></td>
+</tr>
+<tr id="DBLP:journals/tit/LiLHQ21" class="entry">
+	<td>Li, K., Li, C., Helleseth, T. and Qu, L.</td>
+	<td>Binary Linear Codes With Few Weights From Two-to-One Functions <p class="infolinks">[<a href="javascript:toggleInfo('DBLP:journals/tit/LiLHQ21','abstract')">Abstract</a>] [<a href="javascript:toggleInfo('DBLP:journals/tit/LiLHQ21','bibtex')">BibTeX</a>]</p></td>
+	<td>2021</td>
+	<td>IEEE Trans. Inf. Theory<br/>Vol. 67(7), pp. 4263-4275&nbsp;</td>
+	<td>article</td>
+	<td><a href="https://doi.org/10.1109/TIT.2021.3068743">DOI</a> <a href="https://doi.org/10.1109/TIT.2021.3068743">URL</a>&nbsp;</td>
+</tr>
+<tr id="abs_DBLP:journals/tit/LiLHQ21" class="abstract noshow">
+	<td colspan="6"><b>Abstract</b>: In this paper, we apply two-to-one functions over b F 2n in two generic constructions of binary linear codes. We consider two-to-one functions in two forms: (1) generalized quadratic functions; and (2) (x 2t +x) e with gcd(t, n)=gcd(e, 2 n -1)=1. Based on the study of the Walsh transforms of those functions or their variants, we present many classes of linear codes with few nonzero weights, including one weight, three weights, four weights, and five weights. The weight distributions of the proposed codes with one weight and with three weights are determined. In addition, we discuss the minimum distance of the dual of the constructed codes and show that some of them achieve the sphere packing bound. Moreover, examples show that some codes in this paper have best-known parameters.</td>
+</tr>
+<tr id="bib_DBLP:journals/tit/LiLHQ21" class="bibtex noshow">
+<td colspan="6"><b>BibTeX</b>:
+<pre>
+@article{DBLP:journals/tit/LiLHQ21,
+  author = {Kangquan Li and Chunlei Li and Tor Helleseth and Longjiang Qu},
+  title = {Binary Linear Codes With Few Weights From Two-to-One Functions},
+  journal = {IEEE Trans. Inf. Theory},
+  year = {2021},
+  volume = {67},
+  number = {7},
+  pages = {4263--4275},
+  url = {https://doi.org/10.1109/TIT.2021.3068743},
+  doi = {https://doi.org/10.1109/TIT.2021.3068743}
+}
+</pre></td>
+</tr>
+<tr id="DBLP:journals/tit/LiLHQ21a" class="entry">
+	<td>Li, K., Li, C., Helleseth, T. and Qu, L.</td>
+	<td>A Complete Characterization of the APN Property of a Class of Quadrinomials <p class="infolinks">[<a href="javascript:toggleInfo('DBLP:journals/tit/LiLHQ21a','abstract')">Abstract</a>] [<a href="javascript:toggleInfo('DBLP:journals/tit/LiLHQ21a','bibtex')">BibTeX</a>]</p></td>
+	<td>2021</td>
+	<td>IEEE Trans. Inf. Theory<br/>Vol. 67(11), pp. 7535-7549&nbsp;</td>
+	<td>article</td>
+	<td><a href="https://doi.org/10.1109/TIT.2021.3102872">DOI</a> <a href="https://doi.org/10.1109/TIT.2021.3102872">URL</a>&nbsp;</td>
+</tr>
+<tr id="abs_DBLP:journals/tit/LiLHQ21a" class="abstract noshow">
+	<td colspan="6"><b>Abstract</b>: In this paper, by the Hasse-Weil bound, we determine the necessary and sufficient condition on coefficients a_1,a_2,a_3&#8714; mathbb F _2^n with n=2m such that f(x) = x^3&sdot; 2^m + a_1x^2^m+1+1 + a_2 x^2^m+2 + a_3x^3 is an APN function over mathbb F_2^n . Our work together with the follow-up work by Chase and Lisoněk indicates that all such APN quadrinomials f(x) are affine equivalent to two instances of Gold functions, which resolves the first half of an open problem by Carlet at the International Workshop on the Arithmetic of Finite Fields, 83-107, 2014.</td>
+</tr>
+<tr id="bib_DBLP:journals/tit/LiLHQ21a" class="bibtex noshow">
+<td colspan="6"><b>BibTeX</b>:
+<pre>
+@article{DBLP:journals/tit/LiLHQ21a,
+  author = {Kangquan Li and Chunlei Li and Tor Helleseth and Longjiang Qu},
+  title = {A Complete Characterization of the APN Property of a Class of Quadrinomials},
+  journal = {IEEE Trans. Inf. Theory},
+  year = {2021},
+  volume = {67},
+  number = {11},
+  pages = {7535--7549},
+  url = {https://doi.org/10.1109/TIT.2021.3102872},
+  doi = {https://doi.org/10.1109/TIT.2021.3102872}
+}
+</pre></td>
+</tr>
+<tr id="DBLP:journals/tit/SunZLZY21" class="entry">
+	<td>Sun, Z., Zeng, X., Li, C., Zhang, Y. and Yi, L.</td>
+	<td>The Expansion Complexity of Ultimately Periodic Sequences Over Finite Fields <p class="infolinks">[<a href="javascript:toggleInfo('DBLP:journals/tit/SunZLZY21','abstract')">Abstract</a>] [<a href="javascript:toggleInfo('DBLP:journals/tit/SunZLZY21','bibtex')">BibTeX</a>]</p></td>
+	<td>2021</td>
+	<td>IEEE Trans. Inf. Theory<br/>Vol. 67(11), pp. 7550-7560&nbsp;</td>
+	<td>article</td>
+	<td><a href="https://doi.org/10.1109/TIT.2021.3112824">DOI</a> <a href="https://doi.org/10.1109/TIT.2021.3112824">URL</a>&nbsp;</td>
+</tr>
+<tr id="abs_DBLP:journals/tit/SunZLZY21" class="abstract noshow">
+	<td colspan="6"><b>Abstract</b>: The expansion complexity is a new figure of merit for cryptographic sequences. In this paper, we present an explicit formula of the (irreducible) expansion complexity of ultimately periodic sequences over finite fields. We also provide improved upper and lower bounds on the N th irreducible expansion complexity when they are not explicitly determined. In addition, for some infinite sequences with given nonlinear complexity, a tighter upper bound of their N th expansion complexity is given.</td>
+</tr>
+<tr id="bib_DBLP:journals/tit/SunZLZY21" class="bibtex noshow">
+<td colspan="6"><b>BibTeX</b>:
+<pre>
+@article{DBLP:journals/tit/SunZLZY21,
+  author = {Zhimin Sun and Xiangyong Zeng and Chunlei Li and Yi Zhang and Lin Yi},
+  title = {The Expansion Complexity of Ultimately Periodic Sequences Over Finite Fields},
+  journal = {IEEE Trans. Inf. Theory},
+  year = {2021},
+  volume = {67},
+  number = {11},
+  pages = {7550--7560},
+  url = {https://doi.org/10.1109/TIT.2021.3112824},
+  doi = {https://doi.org/10.1109/TIT.2021.3112824}
+}
+</pre></td>
+</tr>
+<tr id="DBLP:journals/ccds/KadirL20" class="entry">
+	<td>Kadir, W.K. and Li, C.</td>
+	<td>On decoding additive generalized twisted Gabidulin codes <p class="infolinks">[<a href="javascript:toggleInfo('DBLP:journals/ccds/KadirL20','abstract')">Abstract</a>] [<a href="javascript:toggleInfo('DBLP:journals/ccds/KadirL20','bibtex')">BibTeX</a>]</p></td>
+	<td>2020</td>
+	<td>Cryptogr. Commun.<br/>Vol. 12(5), pp. 987-1009&nbsp;</td>
+	<td>article</td>
+	<td><a href="https://doi.org/10.1007/s12095-020-00449-9">DOI</a> <a href="https://doi.org/10.1007/s12095-020-00449-9">URL</a>&nbsp;</td>
+</tr>
+<tr id="abs_DBLP:journals/ccds/KadirL20" class="abstract noshow">
+	<td colspan="6"><b>Abstract</b>: In this paper, we consider an interpolation-based decoding algorithm for a large family of maximum rank distance codes, known as the additive generalized twisted Gabidulin codes, over the finite field F_q for any prime power q. This paper extends the work of the conference paper Li and Kadir (2019) presented at the International Workshop on Coding and Cryptography 2019, which decoded these codes over finite fields in characteristic two.</td>
+</tr>
+<tr id="bib_DBLP:journals/ccds/KadirL20" class="bibtex noshow">
+<td colspan="6"><b>BibTeX</b>:
+<pre>
+@article{DBLP:journals/ccds/KadirL20,
+  author = {Wrya K. Kadir and Chunlei Li},
+  title = {On decoding additive generalized twisted Gabidulin codes},
+  journal = {Cryptogr. Commun.},
+  year = {2020},
+  volume = {12},
+  number = {5},
+  pages = {987--1009},
+  url = {https://doi.org/10.1007/s12095-020-00449-9},
+  doi = {https://doi.org/10.1007/s12095-020-00449-9}
+}
+</pre></td>
+</tr>
+<tr id="DBLP:journals/ccds/LiY20" class="entry">
+	<td>Li, C. and Yang, Y.</td>
+	<td>On three conjectures of binary sequences with low odd-periodic autocorrelation <p class="infolinks">[<a href="javascript:toggleInfo('DBLP:journals/ccds/LiY20','abstract')">Abstract</a>] [<a href="javascript:toggleInfo('DBLP:journals/ccds/LiY20','bibtex')">BibTeX</a>]</p></td>
+	<td>2020</td>
+	<td>Cryptogr. Commun.<br/>Vol. 12(3), pp. 427-442&nbsp;</td>
+	<td>article</td>
+	<td><a href="https://doi.org/10.1007/s12095-019-00393-3">DOI</a> <a href="https://doi.org/10.1007/s12095-019-00393-3">URL</a>&nbsp;</td>
+</tr>
+<tr id="abs_DBLP:journals/ccds/LiY20" class="abstract noshow">
+	<td colspan="6"><b>Abstract</b>: This paper provides a complete answer to three conjectures of Parker about low odd-periodic autocorrelation of sixteen cyclotomic binary sequences in Parker (2001), and also gives new binary sequences with low odd-periodic autocorrelation.</td>
+</tr>
+<tr id="bib_DBLP:journals/ccds/LiY20" class="bibtex noshow">
+<td colspan="6"><b>BibTeX</b>:
+<pre>
+@article{DBLP:journals/ccds/LiY20,
+  author = {Chunlei Li and Yang Yang},
+  title = {On three conjectures of binary sequences with low odd-periodic autocorrelation},
+  journal = {Cryptogr. Commun.},
+  year = {2020},
+  volume = {12},
+  number = {3},
+  pages = {427--442},
+  url = {https://doi.org/10.1007/s12095-019-00393-3},
+  doi = {https://doi.org/10.1007/s12095-019-00393-3}
+}
+</pre></td>
+</tr>
+<tr id="DBLP:journals/ccds/YangL20" class="entry">
+	<td>Yang, Y. and Li, C.</td>
+	<td>New quaternary sequences with optimal odd-periodic autocorrelation magnitude <p class="infolinks">[<a href="javascript:toggleInfo('DBLP:journals/ccds/YangL20','abstract')">Abstract</a>] [<a href="javascript:toggleInfo('DBLP:journals/ccds/YangL20','bibtex')">BibTeX</a>]</p></td>
+	<td>2020</td>
+	<td>Cryptogr. Commun.<br/>Vol. 12(3), pp. 363-374&nbsp;</td>
+	<td>article</td>
+	<td><a href="https://doi.org/10.1007/s12095-019-00407-0">DOI</a> <a href="https://doi.org/10.1007/s12095-019-00407-0">URL</a>&nbsp;</td>
+</tr>
+<tr id="abs_DBLP:journals/ccds/YangL20" class="abstract noshow">
+	<td colspan="6"><b>Abstract</b>: A quaternary sequence is said to be optimal if its odd-periodic autocorrelation magnitude equal to 2 for even length, and 1 for odd length. In this paper, we propose three constructions of optimal quaternary sequences: the first construction applies the inverse Gray mapping to four component binary sequences, which could be chosen from GMW sequence pair, twin-prime sequence pair, Legendre sequence pair, and ideal sequences; the second one generates optimal sequences from quaternary sequences with optimal even-periodic autocorrelation magnitude; the third one gives new optimal quaternary sequences by applying the sign alternation transform and Gray mapping to GMW sequence pair and twin-prime sequence pair. In particular, some proposed sequences have new parameters.</td>
+</tr>
+<tr id="bib_DBLP:journals/ccds/YangL20" class="bibtex noshow">
+<td colspan="6"><b>BibTeX</b>:
+<pre>
+@article{DBLP:journals/ccds/YangL20,
+  author = {Yang Yang and Chunlei Li},
+  title = {New quaternary sequences with optimal odd-periodic autocorrelation magnitude},
+  journal = {Cryptogr. Commun.},
+  year = {2020},
+  volume = {12},
+  number = {3},
+  pages = {363--374},
+  url = {https://doi.org/10.1007/s12095-019-00407-0},
+  doi = {https://doi.org/10.1007/s12095-019-00407-0}
+}
+</pre></td>
+</tr>
+<tr id="DBLP:journals/ffa/XiaZLH20" class="entry">
+	<td>Xia, Y., Zhang, X., Li, C. and Helleseth, T.</td>
+	<td>The differential spectrum of a ternary power mapping <p class="infolinks">[<a href="javascript:toggleInfo('DBLP:journals/ffa/XiaZLH20','bibtex')">BibTeX</a>]</p></td>
+	<td>2020</td>
+	<td>Finite Fields Their Appl.<br/>Vol. 64, pp. 101660&nbsp;</td>
+	<td>article</td>
+	<td><a href="https://doi.org/10.1016/j.ffa.2020.101660">DOI</a> <a href="https://doi.org/10.1016/j.ffa.2020.101660">URL</a>&nbsp;</td>
+</tr>
+<tr id="bib_DBLP:journals/ffa/XiaZLH20" class="bibtex noshow">
+<td colspan="6"><b>BibTeX</b>:
+<pre>
+@article{DBLP:journals/ffa/XiaZLH20,
+  author = {Yongbo Xia and Xianglai Zhang and Chunlei Li and Tor Helleseth},
+  title = {The differential spectrum of a ternary power mapping},
+  journal = {Finite Fields Their Appl.},
+  year = {2020},
+  volume = {64},
+  pages = {101660},
+  url = {https://doi.org/10.1016/j.ffa.2020.101660},
+  doi = {https://doi.org/10.1016/j.ffa.2020.101660}
+}
+</pre></td>
+</tr>
+<tr id="DBLP:conf/cybersecpods/0001RJ19" class="entry">
+	<td>Li, C., Rong, C. and Jaatun, M.G.</td>
+	<td>A Cost-efficient Protocol for Open Blockchains <p class="infolinks">[<a href="javascript:toggleInfo('DBLP:conf/cybersecpods/0001RJ19','abstract')">Abstract</a>] [<a href="javascript:toggleInfo('DBLP:conf/cybersecpods/0001RJ19','bibtex')">BibTeX</a>]</p></td>
+	<td>2019</td>
+	<td>2019 International Conference on Cyber Security and Protection of Digital Services, Cyber Security 2018, Oxford, United Kingdom, June 3-4, 2019, pp. 1-7&nbsp;</td>
+	<td>inproceedings</td>
+	<td><a href="https://doi.org/10.1109/CyberSecPODS.2019.8885043">DOI</a> <a href="https://doi.org/10.1109/CyberSecPODS.2019.8885043">URL</a>&nbsp;</td>
+</tr>
+<tr id="abs_DBLP:conf/cybersecpods/0001RJ19" class="abstract noshow">
+	<td colspan="6"><b>Abstract</b>: Current proof-of-work blockchains are not sustainable in terms of energy needed to run them. In this paper we propose a new scheme that avoids wasted proof-of-work by a dynamic probabilistic method, where the consensus algorithm can be adjusted according to the parties' required assurance levels.</td>
+</tr>
+<tr id="bib_DBLP:conf/cybersecpods/0001RJ19" class="bibtex noshow">
+<td colspan="6"><b>BibTeX</b>:
+<pre>
+@inproceedings{DBLP:conf/cybersecpods/0001RJ19,
+  author = {Chunlei Li and Chunming Rong and Martin Gilje Jaatun},
+  title = {A Cost-efficient Protocol for Open Blockchains},
+  booktitle = {2019 International Conference on Cyber Security and Protection of Digital Services, Cyber Security 2018, Oxford, United Kingdom, June 3-4, 2019},
+  publisher = {IEEE},
+  year = {2019},
+  pages = {1--7},
+  url = {https://doi.org/10.1109/CyberSecPODS.2019.8885043},
+  doi = {https://doi.org/10.1109/CyberSecPODS.2019.8885043}
+}
+</pre></td>
+</tr>
+<tr id="DBLP:conf/isit/Li19" class="entry">
+	<td>Li, C.</td>
+	<td>Interpolation-based Decoding of Nonlinear Maximum Rank Distance Codes <p class="infolinks">[<a href="javascript:toggleInfo('DBLP:conf/isit/Li19','abstract')">Abstract</a>] [<a href="javascript:toggleInfo('DBLP:conf/isit/Li19','bibtex')">BibTeX</a>]</p></td>
+	<td>2019</td>
+	<td>IEEE International Symposium on Information Theory, ISIT 2019, Paris, France, July 7-12, 2019, pp. 2054-2058&nbsp;</td>
+	<td>inproceedings</td>
+	<td><a href="https://doi.org/10.1109/ISIT.2019.8849472">DOI</a> <a href="https://doi.org/10.1109/ISIT.2019.8849472">URL</a>&nbsp;</td>
+</tr>
+<tr id="abs_DBLP:conf/isit/Li19" class="abstract noshow">
+	<td colspan="6"><b>Abstract</b>: In this paper, we formulate a generic construction of MRD codes that covers almost all the newly found MRD codes. Among those MRD codes, we particularly investigate the encoding and decoding of a family of nonlinear MRD codes recently by Otal and Özbudak.</td>
+</tr>
+<tr id="bib_DBLP:conf/isit/Li19" class="bibtex noshow">
+<td colspan="6"><b>BibTeX</b>:
+<pre>
+@inproceedings{DBLP:conf/isit/Li19,
+  author = {Chunlei Li},
+  title = {Interpolation-based Decoding of Nonlinear Maximum Rank Distance Codes},
+  booktitle = {IEEE International Symposium on Information Theory, ISIT 2019, Paris, France, July 7-12, 2019},
+  publisher = {IEEE},
+  year = {2019},
+  pages = {2054--2058},
+  url = {https://doi.org/10.1109/ISIT.2019.8849472},
+  doi = {https://doi.org/10.1109/ISIT.2019.8849472}
+}
+</pre></td>
+</tr>
+<tr id="DBLP:journals/ccds/BudaghyanLP19" class="entry">
+	<td>Budaghyan, L., Li, C. and Parker, M.G.</td>
+	<td>Editorial: Special Issue on Mathematical Methods for Cryptography <p class="infolinks">[<a href="javascript:toggleInfo('DBLP:journals/ccds/BudaghyanLP19','abstract')">Abstract</a>] [<a href="javascript:toggleInfo('DBLP:journals/ccds/BudaghyanLP19','bibtex')">BibTeX</a>]</p></td>
+	<td>2019</td>
+	<td>Cryptogr. Commun.<br/>Vol. 11(3), pp. 363-365&nbsp;</td>
+	<td>article</td>
+	<td><a href="https://doi.org/10.1007/s12095-019-00356-8">DOI</a> <a href="https://doi.org/10.1007/s12095-019-00356-8">URL</a>&nbsp;</td>
+</tr>
+<tr id="abs_DBLP:journals/ccds/BudaghyanLP19" class="abstract noshow">
+	<td colspan="6"><b>Abstract</b>: Information processing by electronic devices leads to a multitude of security relevant challenges many of which can be solved with the help of cryptography. Modern cryptography is based on and uses mathematical methods some of which have been specifically developed for cryptographic applications while many of them are taken from the classical mathematical canon. The present special issue is dedicated to mathematical methods for cryptography.</td>
+</tr>
+<tr id="bib_DBLP:journals/ccds/BudaghyanLP19" class="bibtex noshow">
+<td colspan="6"><b>BibTeX</b>:
+<pre>
+@article{DBLP:journals/ccds/BudaghyanLP19,
+  author = {Lilya Budaghyan and Chunlei Li and Matthew Geoffrey Parker},
+  title = {Editorial: Special Issue on Mathematical Methods for Cryptography},
+  journal = {Cryptogr. Commun.},
+  year = {2019},
+  volume = {11},
+  number = {3},
+  pages = {363--365},
+  url = {https://doi.org/10.1007/s12095-019-00356-8},
+  doi = {https://doi.org/10.1007/s12095-019-00356-8}
+}
+</pre></td>
+</tr>
+<tr id="DBLP:journals/dcc/EdemskiyLZH19" class="entry">
+	<td>Edemskiy, V., Li, C., Zeng, X. and Helleseth, T.</td>
+	<td>The linear complexity of generalized cyclotomic binary sequences of period p<sub>n</sub> <p class="infolinks">[<a href="javascript:toggleInfo('DBLP:journals/dcc/EdemskiyLZH19','abstract')">Abstract</a>] [<a href="javascript:toggleInfo('DBLP:journals/dcc/EdemskiyLZH19','bibtex')">BibTeX</a>]</p></td>
+	<td>2019</td>
+	<td>Des. Codes Cryptogr.<br/>Vol. 87(5), pp. 1183-1197&nbsp;</td>
+	<td>article</td>
+	<td><a href="https://doi.org/10.1007/s10623-018-0513-2">DOI</a> <a href="https://doi.org/10.1007/s10623-018-0513-2">URL</a>&nbsp;</td>
+</tr>
+<tr id="abs_DBLP:journals/dcc/EdemskiyLZH19" class="abstract noshow">
+	<td colspan="6"><b>Abstract</b>: This paper examines the linear complexity of a family of generalized cyclotomic binary sequences of period <br> recently proposed by Xiao et al. (Des Codes Cryptogr, 2017, https://doi.org/10.1007/s10623-017-0408-7), where a conjecture about the linear complexity in the special case that for a positive integer r was made. We prove the conjecture and also extend the result to more general even integers f.</td>
+</tr>
+<tr id="bib_DBLP:journals/dcc/EdemskiyLZH19" class="bibtex noshow">
+<td colspan="6"><b>BibTeX</b>:
+<pre>
+@article{DBLP:journals/dcc/EdemskiyLZH19,
+  author = {Vladimir Edemskiy and Chunlei Li and Xiangyong Zeng and Tor Helleseth},
+  title = {The linear complexity of generalized cyclotomic binary sequences of period p(^n)},
+  journal = {Des. Codes Cryptogr.},
+  year = {2019},
+  volume = {87},
+  number = {5},
+  pages = {1183--1197},
+  url = {https://doi.org/10.1007/s10623-018-0513-2},
+  doi = {https://doi.org/10.1007/s10623-018-0513-2}
+}
+</pre></td>
+</tr>
+<tr id="DBLP:journals/ffa/LiLLZ19" class="entry">
+	<td>Li, L., Li, C., Li, C. and Zeng, X.</td>
+	<td>New classes of complete permutation polynomials <p class="infolinks">[<a href="javascript:toggleInfo('DBLP:journals/ffa/LiLLZ19','abstract')">Abstract</a>] [<a href="javascript:toggleInfo('DBLP:journals/ffa/LiLLZ19','bibtex')">BibTeX</a>]</p></td>
+	<td>2019</td>
+	<td>Finite Fields Their Appl.<br/>Vol. 55, pp. 177-201&nbsp;</td>
+	<td>article</td>
+	<td><a href="https://doi.org/10.1016/j.ffa.2018.10.001">DOI</a> <a href="https://doi.org/10.1016/j.ffa.2018.10.001">URL</a>&nbsp;</td>
+</tr>
+<tr id="abs_DBLP:journals/ffa/LiLLZ19" class="abstract noshow">
+	<td colspan="6"><b>Abstract</b>: In this paper, we propose several classes of complete permutation polynomials over a finite field based on certain polynomials over its subfields or subsets. In addition, a class of complete permutation trinomials with Niho exponents is studied, and the number of these complete permutation trinomials is also determined.</td>
+</tr>
+<tr id="bib_DBLP:journals/ffa/LiLLZ19" class="bibtex noshow">
+<td colspan="6"><b>BibTeX</b>:
+<pre>
+@article{DBLP:journals/ffa/LiLLZ19,
+  author = {Lisha Li and Chaoyun Li and Chunlei Li and Xiangyong Zeng},
+  title = {New classes of complete permutation polynomials},
+  journal = {Finite Fields Their Appl.},
+  year = {2019},
+  volume = {55},
+  pages = {177--201},
+  url = {https://doi.org/10.1016/j.ffa.2018.10.001},
+  doi = {https://doi.org/10.1016/j.ffa.2018.10.001}
+}
+</pre></td>
+</tr>
+<tr id="DBLP:journals/ijfcs/XuLZ19" class="entry">
+	<td>Xu, X., Li, C. and Zeng, X.</td>
+	<td>Nonsingular Polynomials from Feedback Shift Registers <p class="infolinks">[<a href="javascript:toggleInfo('DBLP:journals/ijfcs/XuLZ19','abstract')">Abstract</a>] [<a href="javascript:toggleInfo('DBLP:journals/ijfcs/XuLZ19','bibtex')">BibTeX</a>]</p></td>
+	<td>2019</td>
+	<td>Int. J. Found. Comput. Sci.<br/>Vol. 30(3), pp. 469-487&nbsp;</td>
+	<td>article</td>
+	<td><a href="https://doi.org/10.1142/S0129054119500151">DOI</a> <a href="https://doi.org/10.1142/S0129054119500151">URL</a>&nbsp;</td>
+</tr>
+<tr id="abs_DBLP:journals/ijfcs/XuLZ19" class="abstract noshow">
+	<td colspan="6"><b>Abstract</b>: In this paper, we present nonsingular permutation polynomials from nonsingular feedback shift registers and examine nonlinearity and algebraic degree of nonsingular polynomials of certain forms. The upper bound on the nonlinearity of nonsingular Boolean functions is investigated. We also present n-variable nonsingular Boolean functions with algebraic degree n−1 and highest possible nonlinearity for odd n.<br>.</td>
+</tr>
+<tr id="bib_DBLP:journals/ijfcs/XuLZ19" class="bibtex noshow">
+<td colspan="6"><b>BibTeX</b>:
+<pre>
+@article{DBLP:journals/ijfcs/XuLZ19,
+  author = {Xiaofang Xu and Chunlei Li and Xiangyong Zeng},
+  title = {Nonsingular Polynomials from Feedback Shift Registers},
+  journal = {Int. J. Found. Comput. Sci.},
+  year = {2019},
+  volume = {30},
+  number = {3},
+  pages = {469--487},
+  url = {https://doi.org/10.1142/S0129054119500151},
+  doi = {https://doi.org/10.1142/S0129054119500151}
+}
+</pre></td>
+</tr>
+<tr id="DBLP:conf/cloudcom/YangL18" class="entry">
+	<td>Yang, G. and Li, C.</td>
+	<td>A Design of Blockchain-Based Architecture for the Security of Electronic Health Record (EHR) Systems <p class="infolinks">[<a href="javascript:toggleInfo('DBLP:conf/cloudcom/YangL18','abstract')">Abstract</a>] [<a href="javascript:toggleInfo('DBLP:conf/cloudcom/YangL18','bibtex')">BibTeX</a>]</p></td>
+	<td>2018</td>
+	<td>2018 IEEE International Conference on Cloud Computing Technology and Science, CloudCom 2018, Nicosia, Cyprus, December 10-13, 2018, pp. 261-265&nbsp;</td>
+	<td>inproceedings</td>
+	<td><a href="https://doi.org/10.1109/CloudCom2018.2018.00058">DOI</a> <a href="https://doi.org/10.1109/CloudCom2018.2018.00058">URL</a>&nbsp;</td>
+</tr>
+<tr id="abs_DBLP:conf/cloudcom/YangL18" class="abstract noshow">
+	<td colspan="6"><b>Abstract</b>: This paper presents a blockchain-based architecture for electronic health record (EHR) systems. The architecture is built on top of existing databases maintained by health providers, implements a blockchain solution to improve interoperability of the current EHR systems, prevent tampering and malicious misuse of EHRs by means of tracking all events that happened to the data in the databases. This proposed architecture also introduces a new incentive mechanism for the creation of new blocks in the blockchain. The architecture is independent of any specific blockchain platforms and open to further extensions, hence potentially fits in with other electronic record systems that require protection against tampering and misuse.</td>
+</tr>
+<tr id="bib_DBLP:conf/cloudcom/YangL18" class="bibtex noshow">
+<td colspan="6"><b>BibTeX</b>:
+<pre>
+@inproceedings{DBLP:conf/cloudcom/YangL18,
+  author = {Guang Yang and Chunlei Li},
+  title = {A Design of Blockchain-Based Architecture for the Security of Electronic Health Record (EHR) Systems},
+  booktitle = {2018 IEEE International Conference on Cloud Computing Technology and Science, CloudCom 2018, Nicosia, Cyprus, December 10-13, 2018},
+  publisher = {IEEE Computer Society},
+  year = {2018},
+  pages = {261--265},
+  url = {https://doi.org/10.1109/CloudCom2018.2018.00058},
+  doi = {https://doi.org/10.1109/CloudCom2018.2018.00058}
+}
+</pre></td>
+</tr>
+<tr id="DBLP:journals/dcc/XiaoZLH18" class="entry">
+	<td>Xiao, Z., Zeng, X., Li, C. and Helleseth, T.</td>
+	<td>New generalized cyclotomic binary sequences of period p<sup>2</sup> <p class="infolinks">[<a href="javascript:toggleInfo('DBLP:journals/dcc/XiaoZLH18','abstract')">Abstract</a>] [<a href="javascript:toggleInfo('DBLP:journals/dcc/XiaoZLH18','bibtex')">BibTeX</a>]</p></td>
+	<td>2018</td>
+	<td>Des. Codes Cryptogr.<br/>Vol. 86(7), pp. 1483-1497&nbsp;</td>
+	<td>article</td>
+	<td><a href="https://doi.org/10.1007/s10623-017-0408-7">DOI</a> <a href="https://doi.org/10.1007/s10623-017-0408-7">URL</a>&nbsp;</td>
+</tr>
+<tr id="abs_DBLP:journals/dcc/XiaoZLH18" class="abstract noshow">
+	<td colspan="6"><b>Abstract</b>: New generalized cyclotomic binary sequences of period p^2 are proposed in this paper, where p is an odd prime. The sequences are almost balanced and their linear complexity is determined. The result shows that the proposed sequences have very large linear complexity if p is a non-Wieferich prime.</td>
+</tr>
+<tr id="bib_DBLP:journals/dcc/XiaoZLH18" class="bibtex noshow">
+<td colspan="6"><b>BibTeX</b>:
+<pre>
+@article{DBLP:journals/dcc/XiaoZLH18,
+  author = {Zibi Xiao and Xiangyong Zeng and Chunlei Li and Tor Helleseth},
+  title = {New generalized cyclotomic binary sequences of period p(^2)},
+  journal = {Des. Codes Cryptogr.},
+  year = {2018},
+  volume = {86},
+  number = {7},
+  pages = {1483--1497},
+  url = {https://doi.org/10.1007/s10623-017-0408-7},
+  doi = {https://doi.org/10.1007/s10623-017-0408-7}
+}
+</pre></td>
+</tr>
+<tr id="DBLP:journals/dcc/XuLZH18" class="entry">
+	<td>Xu, X., Li, C., Zeng, X. and Helleseth, T.</td>
+	<td>Constructions of complete permutation polynomials <p class="infolinks">[<a href="javascript:toggleInfo('DBLP:journals/dcc/XuLZH18','abstract')">Abstract</a>] [<a href="javascript:toggleInfo('DBLP:journals/dcc/XuLZH18','bibtex')">BibTeX</a>]</p></td>
+	<td>2018</td>
+	<td>Des. Codes Cryptogr.<br/>Vol. 86(12), pp. 2869-2892&nbsp;</td>
+	<td>article</td>
+	<td><a href="https://doi.org/10.1007/s10623-018-0480-7">DOI</a> <a href="https://doi.org/10.1007/s10623-018-0480-7">URL</a>&nbsp;</td>
+</tr>
+<tr id="abs_DBLP:journals/dcc/XuLZH18" class="abstract noshow">
+	<td colspan="6"><b>Abstract</b>: Based on the Feistel and MISTY structures, this paper presents several new constructions of complete permutation polynomials (CPPs) of the finite field F_2^n^2 for a positive integer n and three constructions of CPPs over F_p^n^m for any prime p and positive integer m>1. In addition, we investigate the upper bound on the algebraic degree of these CPPs and show that some of them can have nearly optimal algebraic degree.</td>
+</tr>
+<tr id="bib_DBLP:journals/dcc/XuLZH18" class="bibtex noshow">
+<td colspan="6"><b>BibTeX</b>:
+<pre>
+@article{DBLP:journals/dcc/XuLZH18,
+  author = {Xiaofang Xu and Chunlei Li and Xiangyong Zeng and Tor Helleseth},
+  title = {Constructions of complete permutation polynomials},
+  journal = {Des. Codes Cryptogr.},
+  year = {2018},
+  volume = {86},
+  number = {12},
+  pages = {2869--2892},
+  url = {https://doi.org/10.1007/s10623-018-0480-7},
+  doi = {https://doi.org/10.1007/s10623-018-0480-7}
+}
+</pre></td>
+</tr>
+<tr id="DBLP:journals/ffa/DingLX18" class="entry">
+	<td>Ding, C., Li, C. and Xia, Y.</td>
+	<td>Another generalisation of the binary Reed-Muller codes and its applications <p class="infolinks">[<a href="javascript:toggleInfo('DBLP:journals/ffa/DingLX18','abstract')">Abstract</a>] [<a href="javascript:toggleInfo('DBLP:journals/ffa/DingLX18','bibtex')">BibTeX</a>]</p></td>
+	<td>2018</td>
+	<td>Finite Fields Their Appl.<br/>Vol. 53, pp. 144-174&nbsp;</td>
+	<td>article</td>
+	<td><a href="https://doi.org/10.1016/j.ffa.2018.06.006">DOI</a> <a href="https://doi.org/10.1016/j.ffa.2018.06.006">URL</a>&nbsp;</td>
+</tr>
+<tr id="abs_DBLP:journals/ffa/DingLX18" class="abstract noshow">
+	<td colspan="6"><b>Abstract</b>: The punctured binary Reed–Muller code is cyclic and was generalised into the punctured generalised Reed–Muller code over F_q in the literature. The first objective of this paper is to present another generalisation of the punctured binary Reed–Muller code and the binary Reed–Muller code, and analyse these codes. The second objective of this paper is to consider two applications of the new codes in constructing LCD codes and 2-designs. The major motivation of constructing and studying the new codes and their extended codes is the construction of 2-designs, which is an interesting topic in combinatorics.</td>
+</tr>
+<tr id="bib_DBLP:journals/ffa/DingLX18" class="bibtex noshow">
+<td colspan="6"><b>BibTeX</b>:
+<pre>
+@article{DBLP:journals/ffa/DingLX18,
+  author = {Cunsheng Ding and Chunlei Li and Yongbo Xia},
+  title = {Another generalisation of the binary Reed-Muller codes and its applications},
+  journal = {Finite Fields Their Appl.},
+  year = {2018},
+  volume = {53},
+  pages = {144--174},
+  url = {https://doi.org/10.1016/j.ffa.2018.06.006},
+  doi = {https://doi.org/10.1016/j.ffa.2018.06.006}
+}
+</pre></td>
+</tr>
+<tr id="DBLP:journals/ffa/TuZLH18" class="entry">
+	<td>Tu, Z., Zeng, X., Li, C. and Helleseth, T.</td>
+	<td>A class of new permutation trinomials <p class="infolinks">[<a href="javascript:toggleInfo('DBLP:journals/ffa/TuZLH18','abstract')">Abstract</a>] [<a href="javascript:toggleInfo('DBLP:journals/ffa/TuZLH18','bibtex')">BibTeX</a>]</p></td>
+	<td>2018</td>
+	<td>Finite Fields Their Appl.<br/>Vol. 50, pp. 178-195&nbsp;</td>
+	<td>article</td>
+	<td><a href="https://doi.org/10.1016/j.ffa.2017.11.009">DOI</a> <a href="https://doi.org/10.1016/j.ffa.2017.11.009">URL</a>&nbsp;</td>
+</tr>
+<tr id="abs_DBLP:journals/ffa/TuZLH18" class="abstract noshow">
+	<td colspan="6"><b>Abstract</b>: In this paper we characterize the coefficients of a trinomial f consisting of terms with Niho-exponents to be a permutation of <br>F_q^2. We transform the problem into studying some low-degree equations with variable in the unit circle, which are intensively investigated with some parameterization techniques. From the numerical results, the coefficients that lead f(x)<br> to be a permutation appear to be completely characterized in this paper. It is also demonstrated that some permutations proposed in this paper are quasi-multiplicative (QM) inequivalent to the previously known permutation trinomials.</td>
+</tr>
+<tr id="bib_DBLP:journals/ffa/TuZLH18" class="bibtex noshow">
+<td colspan="6"><b>BibTeX</b>:
+<pre>
+@article{DBLP:journals/ffa/TuZLH18,
+  author = {Ziran Tu and Xiangyong Zeng and Chunlei Li and Tor Helleseth},
+  title = {A class of new permutation trinomials},
+  journal = {Finite Fields Their Appl.},
+  year = {2018},
+  volume = {50},
+  pages = {178--195},
+  url = {https://doi.org/10.1016/j.ffa.2017.11.009},
+  doi = {https://doi.org/10.1016/j.ffa.2017.11.009}
+}
+</pre></td>
+</tr>
+<tr id="DBLP:journals/jossac/ShanHZL18" class="entry">
+	<td>Shan, J., Hu, L., Zeng, X. and Li, C.</td>
+	<td>A Construction of 1-Resilient Boolean Functions with Good Cryptographic Properties <p class="infolinks">[<a href="javascript:toggleInfo('DBLP:journals/jossac/ShanHZL18','abstract')">Abstract</a>] [<a href="javascript:toggleInfo('DBLP:journals/jossac/ShanHZL18','bibtex')">BibTeX</a>]</p></td>
+	<td>2018</td>
+	<td>J. Syst. Sci. Complex.<br/>Vol. 31(4), pp. 1042-1064&nbsp;</td>
+	<td>article</td>
+	<td><a href="https://doi.org/10.1007/s11424-017-6177-6">DOI</a> <a href="https://doi.org/10.1007/s11424-017-6177-6">URL</a>&nbsp;</td>
+</tr>
+<tr id="abs_DBLP:journals/jossac/ShanHZL18" class="abstract noshow">
+	<td colspan="6"><b>Abstract</b>: This paper proposes a general method to construct 1-resilient Boolean functions by modifying the Tu-Deng and Tang-Carlet-Tang functions. Cryptographic properties such as algebraic degree, nonlinearity and algebraic immunity are also considered. A sufficient condition of the modified functions with optimal algebraic degree in terms of the Siegenthaler bound is proposed. The authors obtain a lower bound on the nonlinearity of the Tang-Carlet-Tang functions, which is slightly better than the known result. If the authors do not break the “continuity” of the support and zero sets, the functions constructed in this paper have suboptimal algebraic immunity. Finally, four specific classes of 1-resilient Boolean functions constructed from this construction and with the mentioned good cryptographic properties are proposed. Experimental results show that there are many 1-resilient Boolean functions have higher nonlinearities than known 1-resilient functions modified by Tu-Deng and Tang-Carlet-Tang functions.</td>
+</tr>
+<tr id="bib_DBLP:journals/jossac/ShanHZL18" class="bibtex noshow">
+<td colspan="6"><b>BibTeX</b>:
+<pre>
+@article{DBLP:journals/jossac/ShanHZL18,
+  author = {Jinyong Shan and Lei Hu and Xiangyong Zeng and Chunlei Li},
+  title = {A Construction of 1-Resilient Boolean Functions with Good Cryptographic Properties},
+  journal = {J. Syst. Sci. Complex.},
+  year = {2018},
+  volume = {31},
+  number = {4},
+  pages = {1042--1064},
+  url = {https://doi.org/10.1007/s11424-017-6177-6},
+  doi = {https://doi.org/10.1007/s11424-017-6177-6}
+}
+</pre></td>
+</tr>
+<tr id="DBLP:journals/ffa/XiaL17" class="entry">
+	<td>Xia, Y. and Li, C.</td>
+	<td>Three-weight ternary linear codes from a family of power functions <p class="infolinks">[<a href="javascript:toggleInfo('DBLP:journals/ffa/XiaL17','abstract')">Abstract</a>] [<a href="javascript:toggleInfo('DBLP:journals/ffa/XiaL17','bibtex')">BibTeX</a>]</p></td>
+	<td>2017</td>
+	<td>Finite Fields Their Appl.<br/>Vol. 46, pp. 17-37&nbsp;</td>
+	<td>article</td>
+	<td><a href="https://doi.org/10.1016/j.ffa.2017.03.003">DOI</a> <a href="https://doi.org/10.1016/j.ffa.2017.03.003">URL</a>&nbsp;</td>
+</tr>
+<tr id="abs_DBLP:journals/ffa/XiaL17" class="abstract noshow">
+	<td colspan="6"><b>Abstract</b>: Based on a generic construction, two classes of ternary three-weight linear codes are obtained from a family of power functions, including some APN power functions. The weight distributions of these linear codes are determined by studying the properties of some exponential sums related to the power functions.</td>
+</tr>
+<tr id="bib_DBLP:journals/ffa/XiaL17" class="bibtex noshow">
+<td colspan="6"><b>BibTeX</b>:
+<pre>
+@article{DBLP:journals/ffa/XiaL17,
+  author = {Yongbo Xia and Chunlei Li},
+  title = {Three-weight ternary linear codes from a family of power functions},
+  journal = {Finite Fields Their Appl.},
+  year = {2017},
+  volume = {46},
+  pages = {17--37},
+  url = {https://doi.org/10.1016/j.ffa.2017.03.003},
+  doi = {https://doi.org/10.1016/j.ffa.2017.03.003}
+}
+</pre></td>
+</tr>
+<tr id="DBLP:journals/jossac/AlahmadiAAHHLS17" class="entry">
+	<td>Alahmadi, A., Alhazmi, H., Ali, S., Helleseth, T., Hijazi, R., Li, C. and Sol&eacute;, P.</td>
+	<td>An analogue of the Z_4-Goethals code in non-primitive length <p class="infolinks">[<a href="javascript:toggleInfo('DBLP:journals/jossac/AlahmadiAAHHLS17','abstract')">Abstract</a>] [<a href="javascript:toggleInfo('DBLP:journals/jossac/AlahmadiAAHHLS17','bibtex')">BibTeX</a>]</p></td>
+	<td>2017</td>
+	<td>J. Syst. Sci. Complex.<br/>Vol. 30(4), pp. 950-966&nbsp;</td>
+	<td>article</td>
+	<td><a href="https://doi.org/10.1007/s11424-017-5244-3">DOI</a> <a href="https://doi.org/10.1007/s11424-017-5244-3">URL</a>&nbsp;</td>
+</tr>
+<tr id="abs_DBLP:journals/jossac/AlahmadiAAHHLS17" class="abstract noshow">
+	<td colspan="6"><b>Abstract</b>: This paper constructs a cyclic Z_4-code with a parity-check matrix similar to that of Goethals code but in length 2m + 1, for all m ≥ 4. This code is a subcode of the lifted Zetterberg code for m even. Its minimum Lee weight is shown to be at least 10, in general, and exactly 12 in lengths 33, 65. The authors give an algebraic decoding algorithm which corrects five errors in these lengths for m = 5, 6 and four errors for m > 6.</td>
+</tr>
+<tr id="bib_DBLP:journals/jossac/AlahmadiAAHHLS17" class="bibtex noshow">
+<td colspan="6"><b>BibTeX</b>:
+<pre>
+@article{DBLP:journals/jossac/AlahmadiAAHHLS17,
+  author = {Adel Alahmadi and Hussain Alhazmi and Shakir Ali and Tor Helleseth and Rola Hijazi and Chunlei Li and Patrick Sol&eacute;},
+  title = {An analogue of the Z_4-Goethals code in non-primitive length},
+  journal = {J. Syst. Sci. Complex.},
+  year = {2017},
+  volume = {30},
+  number = {4},
+  pages = {950--966},
+  url = {https://doi.org/10.1007/s11424-017-5244-3},
+  doi = {https://doi.org/10.1007/s11424-017-5244-3}
+}
+</pre></td>
+</tr>
+<tr id="DBLP:journals/tit/SunZLH17" class="entry">
+	<td>Sun, Z., Zeng, X., Li, C. and Helleseth, T.</td>
+	<td>Investigations on Periodic Sequences With Maximum Nonlinear Complexity <p class="infolinks">[<a href="javascript:toggleInfo('DBLP:journals/tit/SunZLH17','abstract')">Abstract</a>] [<a href="javascript:toggleInfo('DBLP:journals/tit/SunZLH17','bibtex')">BibTeX</a>]</p></td>
+	<td>2017</td>
+	<td>IEEE Trans. Inf. Theory<br/>Vol. 63(10), pp. 6188-6198&nbsp;</td>
+	<td>article</td>
+	<td><a href="https://doi.org/10.1109/TIT.2017.2714681">DOI</a> <a href="https://doi.org/10.1109/TIT.2017.2714681">URL</a>&nbsp;</td>
+</tr>
+<tr id="abs_DBLP:journals/tit/SunZLH17" class="abstract noshow">
+	<td colspan="6"><b>Abstract</b>: The nonlinear complexity of a periodic sequence s is the length of the shortest feedback shift register that can generate s, and its value is upper bounded by the least period of s minus 1. In this paper, a recursive approach that generates all periodic sequences with maximum nonlinear complexity is presented, and the total number of such sequences is determined. The randomness properties of these sequences are also examined.</td>
+</tr>
+<tr id="bib_DBLP:journals/tit/SunZLH17" class="bibtex noshow">
+<td colspan="6"><b>BibTeX</b>:
+<pre>
+@article{DBLP:journals/tit/SunZLH17,
+  author = {Zhimin Sun and Xiangyong Zeng and Chunlei Li and Tor Helleseth},
+  title = {Investigations on Periodic Sequences With Maximum Nonlinear Complexity},
+  journal = {IEEE Trans. Inf. Theory},
+  year = {2017},
+  volume = {63},
+  number = {10},
+  pages = {6188--6198},
+  url = {https://doi.org/10.1109/TIT.2017.2714681},
+  doi = {https://doi.org/10.1109/TIT.2017.2714681}
+}
+</pre></td>
+</tr>
+<tr id="DBLP:conf/isit/ChenLR16" class="entry">
+	<td>Chen, X., Li, C. and Rong, C.</td>
+	<td>Perfect Gaussian integer sequences from cyclic difference sets <p class="infolinks">[<a href="javascript:toggleInfo('DBLP:conf/isit/ChenLR16','abstract')">Abstract</a>] [<a href="javascript:toggleInfo('DBLP:conf/isit/ChenLR16','bibtex')">BibTeX</a>]</p></td>
+	<td>2016</td>
+	<td>IEEE International Symposium on Information Theory, ISIT 2016, Barcelona, Spain, July 10-15, 2016, pp. 115-119&nbsp;</td>
+	<td>inproceedings</td>
+	<td><a href="https://doi.org/10.1109/ISIT.2016.7541272">DOI</a> <a href="https://doi.org/10.1109/ISIT.2016.7541272">URL</a>&nbsp;</td>
+</tr>
+<tr id="abs_DBLP:conf/isit/ChenLR16" class="abstract noshow">
+	<td colspan="6"><b>Abstract</b>: A Gaussian integer is a complex number whose real and imaginary parts are both integers. This paper proposed a unified construction of perfect Gaussian integer sequences based on cyclic difference sets. It turns out that this construction produces an abundance of perfect Gaussian integer sequences. The proposed construction includes all the sequences recently given by Lee et. al as special cases, and many new families of Gaussian integer sequences. To illustrate, two classes of perfect Gaussian integer sequences defined from Kasami-Welch functions and Helleseth-Gong functions are given.</td>
+</tr>
+<tr id="bib_DBLP:conf/isit/ChenLR16" class="bibtex noshow">
+<td colspan="6"><b>BibTeX</b>:
+<pre>
+@inproceedings{DBLP:conf/isit/ChenLR16,
+  author = {Xinjiao Chen and Chunlei Li and Chunming Rong},
+  title = {Perfect Gaussian integer sequences from cyclic difference sets},
+  booktitle = {IEEE International Symposium on Information Theory, ISIT 2016, Barcelona, Spain, July 10-15, 2016},
+  publisher = {IEEE},
+  year = {2016},
+  pages = {115--119},
+  url = {https://doi.org/10.1109/ISIT.2016.7541272},
+  doi = {https://doi.org/10.1109/ISIT.2016.7541272}
+}
+</pre></td>
+</tr>
+<tr id="DBLP:journals/ccds/LiH16" class="entry">
+	<td>Li, C. and Helleseth, T.</td>
+	<td>Quasi-perfect linear codes from planar and APN functions <p class="infolinks">[<a href="javascript:toggleInfo('DBLP:journals/ccds/LiH16','abstract')">Abstract</a>] [<a href="javascript:toggleInfo('DBLP:journals/ccds/LiH16','bibtex')">BibTeX</a>]</p></td>
+	<td>2016</td>
+	<td>Cryptogr. Commun.<br/>Vol. 8(2), pp. 215-227&nbsp;</td>
+	<td>article</td>
+	<td><a href="https://doi.org/10.1007/s12095-015-0132-y">DOI</a> <a href="https://doi.org/10.1007/s12095-015-0132-y">URL</a>&nbsp;</td>
+</tr>
+<tr id="abs_DBLP:journals/ccds/LiH16" class="abstract noshow">
+	<td colspan="6"><b>Abstract</b>: In this paper we studied the covering radius of a class of linear codes defined from planar and APN functions, and presented a number of quasi-perfect linear codes. From the calculation and numerical results, it appears that the proposed p-ary linear codes are quasi-perfect for all APN functions when p = 2 and planar functions when p is an odd prime.</td>
+</tr>
+<tr id="bib_DBLP:journals/ccds/LiH16" class="bibtex noshow">
+<td colspan="6"><b>BibTeX</b>:
+<pre>
+@article{DBLP:journals/ccds/LiH16,
+  author = {Chunlei Li and Tor Helleseth},
+  title = {Quasi-perfect linear codes from planar and APN functions},
+  journal = {Cryptogr. Commun.},
+  year = {2016},
+  volume = {8},
+  number = {2},
+  pages = {215--227},
+  url = {https://doi.org/10.1007/s12095-015-0132-y},
+  doi = {https://doi.org/10.1007/s12095-015-0132-y}
+}
+</pre></td>
+</tr>
+<tr id="DBLP:journals/dm/DingLLZ16" class="entry">
+	<td>Ding, C., Li, C., Li, N. and Zhou, Z.</td>
+	<td>Three-weight cyclic codes and their weight distributions <p class="infolinks">[<a href="javascript:toggleInfo('DBLP:journals/dm/DingLLZ16','abstract')">Abstract</a>] [<a href="javascript:toggleInfo('DBLP:journals/dm/DingLLZ16','bibtex')">BibTeX</a>]</p></td>
+	<td>2016</td>
+	<td>Discret. Math.<br/>Vol. 339(2), pp. 415-427&nbsp;</td>
+	<td>article</td>
+	<td><a href="https://doi.org/10.1016/j.disc.2015.09.001">DOI</a> <a href="https://doi.org/10.1016/j.disc.2015.09.001">URL</a>&nbsp;</td>
+</tr>
+<tr id="abs_DBLP:journals/dm/DingLLZ16" class="abstract noshow">
+	<td colspan="6"><b>Abstract</b>: In this paper we studied the covering radius of a class of linear codes defined from planar and APN functions, and presented a number of quasi-perfect linear codes. From the calculation and numerical results, it appears that the proposed p-ary linear codes are quasi-perfect for all APN functions when p = 2 and planar functions when p is an odd prime.</td>
+</tr>
+<tr id="bib_DBLP:journals/dm/DingLLZ16" class="bibtex noshow">
+<td colspan="6"><b>BibTeX</b>:
+<pre>
+@article{DBLP:journals/dm/DingLLZ16,
+  author = {Cunsheng Ding and Chunlei Li and Nian Li and Zhengchun Zhou},
+  title = {Three-weight cyclic codes and their weight distributions},
+  journal = {Discret. Math.},
+  year = {2016},
+  volume = {339},
+  number = {2},
+  pages = {415--427},
+  url = {https://doi.org/10.1016/j.disc.2015.09.001},
+  doi = {https://doi.org/10.1016/j.disc.2015.09.001}
+}
+</pre></td>
+</tr>
+<tr id="DBLP:journals/tit/LiZLHL16" class="entry">
+	<td>Li, C., Zeng, X., Li, C., Helleseth, T. and Li, M.</td>
+	<td>Construction of de Bruijn Sequences From LFSRs With Reducible Characteristic Polynomials <p class="infolinks">[<a href="javascript:toggleInfo('DBLP:journals/tit/LiZLHL16','abstract')">Abstract</a>] [<a href="javascript:toggleInfo('DBLP:journals/tit/LiZLHL16','bibtex')">BibTeX</a>]</p></td>
+	<td>2016</td>
+	<td>IEEE Trans. Inf. Theory<br/>Vol. 62(1), pp. 610-624&nbsp;</td>
+	<td>article</td>
+	<td><a href="https://doi.org/10.1109/TIT.2015.2496946">DOI</a> <a href="https://doi.org/10.1109/TIT.2015.2496946">URL</a>&nbsp;</td>
+</tr>
+<tr id="abs_DBLP:journals/tit/LiZLHL16" class="abstract noshow">
+	<td colspan="6"><b>Abstract</b>: In this paper, a family of new de Bruijn sequences is proposed through the construction of maximum-length nonlinear feedback shift registers (NFSRs). We determine the cycle structure and adjacency graphs of linear feedback shift registers (LFSRs) with characteristic polynomial that is a product of primitive polynomials.</td>
+</tr>
+<tr id="bib_DBLP:journals/tit/LiZLHL16" class="bibtex noshow">
+<td colspan="6"><b>BibTeX</b>:
+<pre>
+@article{DBLP:journals/tit/LiZLHL16,
+  author = {Chaoyun Li and Xiangyong Zeng and Chunlei Li and Tor Helleseth and Ming Li},
+  title = {Construction of de Bruijn Sequences From LFSRs With Reducible Characteristic Polynomials},
+  journal = {IEEE Trans. Inf. Theory},
+  year = {2016},
+  volume = {62},
+  number = {1},
+  pages = {610--624},
+  url = {https://doi.org/10.1109/TIT.2015.2496946},
+  doi = {https://doi.org/10.1109/TIT.2015.2496946}
+}
+</pre></td>
+</tr>
+<tr id="DBLP:journals/amco/XiaHL15" class="entry">
+	<td>Xia, Y., Helleseth, T. and Li, C.</td>
+	<td>Some new classes of cyclic codes with three or six weights <p class="infolinks">[<a href="javascript:toggleInfo('DBLP:journals/amco/XiaHL15','abstract')">Abstract</a>] [<a href="javascript:toggleInfo('DBLP:journals/amco/XiaHL15','bibtex')">BibTeX</a>]</p></td>
+	<td>2015</td>
+	<td>Adv. Math. Commun.<br/>Vol. 9(1), pp. 23-36&nbsp;</td>
+	<td>article</td>
+	<td><a href="https://doi.org/10.3934/amc.2015.9.23">DOI</a> <a href="https://doi.org/10.3934/amc.2015.9.23">URL</a>&nbsp;</td>
+</tr>
+<tr id="abs_DBLP:journals/amco/XiaHL15" class="abstract noshow">
+	<td colspan="6"><b>Abstract</b>: In this paper, a class of three-weight cyclic codes over prime fields F_p of odd order whose duals have two zeros, and a class of six-weight cyclic codes whose duals have three zeros are presented. The weight distributions of these cyclic codes are derived.</td>
+</tr>
+<tr id="bib_DBLP:journals/amco/XiaHL15" class="bibtex noshow">
+<td colspan="6"><b>BibTeX</b>:
+<pre>
+@article{DBLP:journals/amco/XiaHL15,
+  author = {Yongbo Xia and Tor Helleseth and Chunlei Li},
+  title = {Some new classes of cyclic codes with three or six weights},
+  journal = {Adv. Math. Commun.},
+  year = {2015},
+  volume = {9},
+  number = {1},
+  pages = {23--36},
+  url = {https://doi.org/10.3934/amc.2015.9.23},
+  doi = {https://doi.org/10.3934/amc.2015.9.23}
+}
+</pre></td>
+</tr>
+<tr id="DBLP:journals/dcc/LiCZLHS15" class="entry">
+	<td>Li, J., Carlet, C., Zeng, X., Li, C., Hu, L. and Shan, J.</td>
+	<td>Two constructions of balanced Boolean functions with optimal algebraic immunity, high nonlinearity and good behavior against fast algebraic attacks <p class="infolinks">[<a href="javascript:toggleInfo('DBLP:journals/dcc/LiCZLHS15','abstract')">Abstract</a>] [<a href="javascript:toggleInfo('DBLP:journals/dcc/LiCZLHS15','bibtex')">BibTeX</a>]</p></td>
+	<td>2015</td>
+	<td>Des. Codes Cryptogr.<br/>Vol. 76(2), pp. 279-305&nbsp;</td>
+	<td>article</td>
+	<td><a href="https://doi.org/10.1007/s10623-014-9949-1">DOI</a> <a href="https://doi.org/10.1007/s10623-014-9949-1">URL</a>&nbsp;</td>
+</tr>
+<tr id="abs_DBLP:journals/dcc/LiCZLHS15" class="abstract noshow">
+	<td colspan="6"><b>Abstract</b>: In this paper, two constructions of Boolean functions with optimal algebraic immunity are proposed. They generalize previous ones respectively given by Rizomiliotis (IEEE Trans Inf Theory 56:4014–4024, 2010) and Zeng et al. (IEEE Trans Inf Theory 57:6310–6320, 2011) and some new functions with desired properties are obtained. The functions constructed in this paper can be balanced and have optimal algebraic degree. Further, a new lower bound on the nonlinearity of the proposed functions is established, and as a special case, it gives a new lower bound on the nonlinearity of the Carlet-Feng functions, which is slightly better than the best previously known ones. For n<20, the numerical results reveal that among the constructed functions in this paper, there always exist some functions with nonlinearity higher than or equal to that of the Carlet-Feng functions. These functions are also checked to have good behavior against fast algebraic attacks at least for small numbers of input variables.</td>
+</tr>
+<tr id="bib_DBLP:journals/dcc/LiCZLHS15" class="bibtex noshow">
+<td colspan="6"><b>BibTeX</b>:
+<pre>
+@article{DBLP:journals/dcc/LiCZLHS15,
+  author = {Jiao Li and Claude Carlet and Xiangyong Zeng and Chunlei Li and Lei Hu and Jinyong Shan},
+  title = {Two constructions of balanced Boolean functions with optimal algebraic immunity, high nonlinearity and good behavior against fast algebraic attacks},
+  journal = {Des. Codes Cryptogr.},
+  year = {2015},
+  volume = {76},
+  number = {2},
+  pages = {279--305},
+  url = {https://doi.org/10.1007/s10623-014-9949-1},
+  doi = {https://doi.org/10.1007/s10623-014-9949-1}
+}
+</pre></td>
+</tr>
+<tr id="DBLP:journals/ffa/TuZLH15" class="entry">
+	<td>Tu, Z., Zeng, X., Li, C. and Helleseth, T.</td>
+	<td>Permutation polynomials of the form (x(^p\({}^{\mbox{m}}\))-x+(&delta;))(^s)+L(x) over the finite field (_F)(_p)(_2)(_m) of odd characteristic <p class="infolinks">[<a href="javascript:toggleInfo('DBLP:journals/ffa/TuZLH15','abstract')">Abstract</a>] [<a href="javascript:toggleInfo('DBLP:journals/ffa/TuZLH15','bibtex')">BibTeX</a>]</p></td>
+	<td>2015</td>
+	<td>Finite Fields Their Appl.<br/>Vol. 34, pp. 20-35&nbsp;</td>
+	<td>article</td>
+	<td><a href="https://doi.org/10.1016/j.ffa.2015.01.002">DOI</a> <a href="https://doi.org/10.1016/j.ffa.2015.01.002">URL</a>&nbsp;</td>
+</tr>
+<tr id="abs_DBLP:journals/ffa/TuZLH15" class="abstract noshow">
+	<td colspan="6"><b>Abstract</b>: In this paper, we propose several classes of permutation polynomials with a speical form. The main method used in this paper is to determine the number of solutions of some equations over finite fields of odd characteristic.</td>
+</tr>
+<tr id="bib_DBLP:journals/ffa/TuZLH15" class="bibtex noshow">
+<td colspan="6"><b>BibTeX</b>:
+<pre>
+@article{DBLP:journals/ffa/TuZLH15,
+  author = {Ziran Tu and Xiangyong Zeng and Chunlei Li and Tor Helleseth},
+  title = {Permutation polynomials of the form (x(^p\({}^{\mbox{m}}\))-x+(&delta;))(^s)+L(x) over the finite field (_F)(_p)(_2)(_m) of odd characteristic},
+  journal = {Finite Fields Their Appl.},
+  year = {2015},
+  volume = {34},
+  pages = {20--35},
+  url = {https://doi.org/10.1016/j.ffa.2015.01.002},
+  doi = {https://doi.org/10.1016/j.ffa.2015.01.002}
+}
+</pre></td>
+</tr>
+<tr id="DBLP:journals/ffa/LiLHDT14" class="entry">
+	<td>Li, N., Li, C., Helleseth, T., Ding, C. and Tang, X.</td>
+	<td>Optimal ternary cyclic codes with minimum distance four and five <p class="infolinks">[<a href="javascript:toggleInfo('DBLP:journals/ffa/LiLHDT14','abstract')">Abstract</a>] [<a href="javascript:toggleInfo('DBLP:journals/ffa/LiLHDT14','bibtex')">BibTeX</a>]</p></td>
+	<td>2014</td>
+	<td>Finite Fields Their Appl.<br/>Vol. 30, pp. 100-120&nbsp;</td>
+	<td>article</td>
+	<td><a href="https://doi.org/10.1016/j.ffa.2014.06.001">DOI</a> <a href="https://doi.org/10.1016/j.ffa.2014.06.001">URL</a>&nbsp;</td>
+</tr>
+<tr id="abs_DBLP:journals/ffa/LiLHDT14" class="abstract noshow">
+	<td colspan="6"><b>Abstract</b>: Cyclic codes are an important subclass of linear codes and have wide applications in data storage systems, communication systems and consumer electronics. In this paper, two families of optimal ternary cyclic codes are presented.</td>
+</tr>
+<tr id="bib_DBLP:journals/ffa/LiLHDT14" class="bibtex noshow">
+<td colspan="6"><b>BibTeX</b>:
+<pre>
+@article{DBLP:journals/ffa/LiLHDT14,
+  author = {Nian Li and Chunlei Li and Tor Helleseth and Cunsheng Ding and Xiaohu Tang},
+  title = {Optimal ternary cyclic codes with minimum distance four and five},
+  journal = {Finite Fields Their Appl.},
+  year = {2014},
+  volume = {30},
+  pages = {100--120},
+  url = {https://doi.org/10.1016/j.ffa.2014.06.001},
+  doi = {https://doi.org/10.1016/j.ffa.2014.06.001}
+}
+</pre></td>
+</tr>
+<tr id="DBLP:journals/ieicet/XiaCHL14" class="entry">
+	<td>Xia, Y., Chen, S., Helleseth, T. and Li, C.</td>
+	<td>Cross-Correlation between a <em>p</em>-ary <em>m</em>-Sequence and Its All Decimated Sequences for d=((p<sup>m</sup>+1)(p<sup>m</sup>+p-1))/(p+1) <p class="infolinks">[<a href="javascript:toggleInfo('DBLP:journals/ieicet/XiaCHL14','bibtex')">BibTeX</a>]</p></td>
+	<td>2014</td>
+	<td>IEICE Trans. Fundam. Electron. Commun. Comput. Sci.<br/>Vol. 97-A(4), pp. 964-969&nbsp;</td>
+	<td>article</td>
+	<td><a href="https://doi.org/10.1587/transfun.E97.A.964">DOI</a> <a href="https://doi.org/10.1587/transfun.E97.A.964">URL</a>&nbsp;</td>
+</tr>
+<tr id="bib_DBLP:journals/ieicet/XiaCHL14" class="bibtex noshow">
+<td colspan="6"><b>BibTeX</b>:
+<pre>
+@article{DBLP:journals/ieicet/XiaCHL14,
+  author = {Yongbo Xia and Shaoping Chen and Tor Helleseth and Chunlei Li},
+  title = {Cross-Correlation between a <em>p</em>-ary <em>m</em>-Sequence and Its All Decimated Sequences for d=((p(^m)+1)(p(^m)+p-1))/(p+1)},
+  journal = {IEICE Trans. Fundam. Electron. Commun. Comput. Sci.},
+  year = {2014},
+  volume = {97-A},
+  number = {4},
+  pages = {964--969},
+  url = {https://doi.org/10.1587/transfun.E97.A.964},
+  doi = {https://doi.org/10.1587/transfun.E97.A.964}
+}
+</pre></td>
+</tr>
+<tr id="DBLP:journals/tit/LiLHD14" class="entry">
+	<td>Li, C., Li, N., Helleseth, T. and Ding, C.</td>
+	<td>The Weight Distributions of Several Classes of Cyclic Codes From APN Monomials <p class="infolinks">[<a href="javascript:toggleInfo('DBLP:journals/tit/LiLHD14','abstract')">Abstract</a>] [<a href="javascript:toggleInfo('DBLP:journals/tit/LiLHD14','bibtex')">BibTeX</a>]</p></td>
+	<td>2014</td>
+	<td>IEEE Trans. Inf. Theory<br/>Vol. 60(8), pp. 4710-4721&nbsp;</td>
+	<td>article</td>
+	<td><a href="https://doi.org/10.1109/TIT.2014.2329694">DOI</a> <a href="https://doi.org/10.1109/TIT.2014.2329694">URL</a>&nbsp;</td>
+</tr>
+<tr id="abs_DBLP:journals/tit/LiLHD14" class="abstract noshow">
+	<td colspan="6"><b>Abstract</b>: This paper investigates two class of cyclic codes which have zeros , , and have zeros  , alpha^e and , respectively. The proposed cyclic coodes cover several code families in the literature. Moreover, the weight spectrum of the proposed code families are completely determined.</td>
+</tr>
+<tr id="bib_DBLP:journals/tit/LiLHD14" class="bibtex noshow">
+<td colspan="6"><b>BibTeX</b>:
+<pre>
+@article{DBLP:journals/tit/LiLHD14,
+  author = {Chunlei Li and Nian Li and Tor Helleseth and Cunsheng Ding},
+  title = {The Weight Distributions of Several Classes of Cyclic Codes From APN Monomials},
+  journal = {IEEE Trans. Inf. Theory},
+  year = {2014},
+  volume = {60},
+  number = {8},
+  pages = {4710--4721},
+  url = {https://doi.org/10.1109/TIT.2014.2329694},
+  doi = {https://doi.org/10.1109/TIT.2014.2329694}
+}
+</pre></td>
+</tr>
+<tr id="DBLP:journals/tit/LiZHLH14" class="entry">
+	<td>Li, C., Zeng, X., Helleseth, T., Li, C. and Hu, L.</td>
+	<td>The Properties of a Class of Linear FSRs and Their Applications to the Construction of Nonlinear FSRs <p class="infolinks">[<a href="javascript:toggleInfo('DBLP:journals/tit/LiZHLH14','abstract')">Abstract</a>] [<a href="javascript:toggleInfo('DBLP:journals/tit/LiZHLH14','bibtex')">BibTeX</a>]</p></td>
+	<td>2014</td>
+	<td>IEEE Trans. Inf. Theory<br/>Vol. 60(5), pp. 3052-3061&nbsp;</td>
+	<td>article</td>
+	<td><a href="https://doi.org/10.1109/TIT.2014.2310748">DOI</a> <a href="https://doi.org/10.1109/TIT.2014.2310748">URL</a>&nbsp;</td>
+</tr>
+<tr id="abs_DBLP:journals/tit/LiZHLH14" class="abstract noshow">
+	<td colspan="6"><b>Abstract</b>: In this paper, the cycle structure and adjacency graphs of a class of linear feedback shift registers (LFSRs) are determined. By recursively applying the D-morphism to the maximum-length LFSRs and representing the cycles by generating functions, a new family of maximum-length nonlinear feedback shift registers (NFSRs) are proposed based on the properties of these LFSRs. The number of NFSRs in the proposed family is also considered.</td>
+</tr>
+<tr id="bib_DBLP:journals/tit/LiZHLH14" class="bibtex noshow">
+<td colspan="6"><b>BibTeX</b>:
+<pre>
+@article{DBLP:journals/tit/LiZHLH14,
+  author = {Chaoyun Li and Xiangyong Zeng and Tor Helleseth and Chunlei Li and Lei Hu},
+  title = {The Properties of a Class of Linear FSRs and Their Applications to the Construction of Nonlinear FSRs},
+  journal = {IEEE Trans. Inf. Theory},
+  year = {2014},
+  volume = {60},
+  number = {5},
+  pages = {3052--3061},
+  url = {https://doi.org/10.1109/TIT.2014.2310748},
+  doi = {https://doi.org/10.1109/TIT.2014.2310748}
+}
+</pre></td>
+</tr>
+<tr id="DBLP:journals/tit/LiZLH14" class="entry">
+	<td>Li, C., Zeng, X., Li, C. and Helleseth, T.</td>
+	<td>A Class of de Bruijn Sequences <p class="infolinks">[<a href="javascript:toggleInfo('DBLP:journals/tit/LiZLH14','abstract')">Abstract</a>] [<a href="javascript:toggleInfo('DBLP:journals/tit/LiZLH14','bibtex')">BibTeX</a>]</p></td>
+	<td>2014</td>
+	<td>IEEE Trans. Inf. Theory<br/>Vol. 60(12), pp. 7955-7969&nbsp;</td>
+	<td>article</td>
+	<td><a href="https://doi.org/10.1109/TIT.2014.2361522">DOI</a> <a href="https://doi.org/10.1109/TIT.2014.2361522">URL</a>&nbsp;</td>
+</tr>
+<tr id="abs_DBLP:journals/tit/LiZLH14" class="abstract noshow">
+	<td colspan="6"><b>Abstract</b>: In this paper, a class of linear feedback shift registers (LFSRs) with characteristic polynomial (1 + x 3 )p(x) is discussed, where p(x) is a primitive polynomial of degree n > 2. The cycle structure and adjacency graphs of the LFSRs are determined. A new class of de Bruijn sequences is constructed from these LFSRs, and the number of de Bruijn sequences in the class is also considered.</td>
+</tr>
+<tr id="bib_DBLP:journals/tit/LiZLH14" class="bibtex noshow">
+<td colspan="6"><b>BibTeX</b>:
+<pre>
+@article{DBLP:journals/tit/LiZLH14,
+  author = {Chaoyun Li and Xiangyong Zeng and Chunlei Li and Tor Helleseth},
+  title = {A Class of de Bruijn Sequences},
+  journal = {IEEE Trans. Inf. Theory},
+  year = {2014},
+  volume = {60},
+  number = {12},
+  pages = {7955--7969},
+  url = {https://doi.org/10.1109/TIT.2014.2361522},
+  doi = {https://doi.org/10.1109/TIT.2014.2361522}
+}
+</pre></td>
+</tr>
+<tr id="DBLP:journals/tit/XiaLZH14" class="entry">
+	<td>Xia, Y., Li, C., Zeng, X. and Helleseth, T.</td>
+	<td>Some Results on Cross-Correlation Distribution Between a p-ary Sequence and Its Decimated Sequences <p class="infolinks">[<a href="javascript:toggleInfo('DBLP:journals/tit/XiaLZH14','abstract')">Abstract</a>] [<a href="javascript:toggleInfo('DBLP:journals/tit/XiaLZH14','bibtex')">BibTeX</a>]</p></td>
+	<td>2014</td>
+	<td>IEEE Trans. Inf. Theory<br/>Vol. 60(11), pp. 7368-7381&nbsp;</td>
+	<td>article</td>
+	<td><a href="https://doi.org/10.1109/TIT.2014.2350775">DOI</a> <a href="https://doi.org/10.1109/TIT.2014.2350775">URL</a>&nbsp;</td>
+</tr>
+<tr id="abs_DBLP:journals/tit/XiaLZH14" class="abstract noshow">
+	<td colspan="6"><b>Abstract</b>: In this paper, the cross-correlation between a p-ary m-sequence and its d-decimated sequences is investigated, and the cross correlation distribution is completely determined. The relationship between the decimations d considered in this paper and some known ones is also studied. This paper generalizes some previous results, and also gives new decimations, which lead to low cross correlation.</td>
+</tr>
+<tr id="bib_DBLP:journals/tit/XiaLZH14" class="bibtex noshow">
+<td colspan="6"><b>BibTeX</b>:
+<pre>
+@article{DBLP:journals/tit/XiaLZH14,
+  author = {Yongbo Xia and Chunlei Li and Xiangyong Zeng and Tor Helleseth},
+  title = {Some Results on Cross-Correlation Distribution Between a p-ary Sequence and Its Decimated Sequences},
+  journal = {IEEE Trans. Inf. Theory},
+  year = {2014},
+  volume = {60},
+  number = {11},
+  pages = {7368--7381},
+  url = {https://doi.org/10.1109/TIT.2014.2350775},
+  doi = {https://doi.org/10.1109/TIT.2014.2350775}
+}
+</pre></td>
+</tr>
+<tr id="DBLP:journals/corr/TuZHL13" class="entry">
+	<td>Tu, Z., Zeng, X., Hu, L. and Li, C.</td>
+	<td>A Class of Binomial Permutation Polynomials <p class="infolinks">[<a href="javascript:toggleInfo('DBLP:journals/corr/TuZHL13','abstract')">Abstract</a>] [<a href="javascript:toggleInfo('DBLP:journals/corr/TuZHL13','bibtex')">BibTeX</a>]</p></td>
+	<td>2013</td>
+	<td>CoRR<br/>Vol. abs/1310.0337&nbsp;</td>
+	<td>article</td>
+	<td><a href="http://arxiv.org/abs/1310.0337">URL</a>&nbsp;</td>
+</tr>
+<tr id="abs_DBLP:journals/corr/TuZHL13" class="abstract noshow">
+	<td colspan="6"><b>Abstract</b>: In this paper  a criterion for a class of binomials to be permutation polynomials is proposed. As a consequence, many classes of binomial permutation polynomials and monomial complete permutation polynomials are obtained. The exponents in these monomials are of Niho type.</td>
+</tr>
+<tr id="bib_DBLP:journals/corr/TuZHL13" class="bibtex noshow">
+<td colspan="6"><b>BibTeX</b>:
+<pre>
+@article{DBLP:journals/corr/TuZHL13,
+  author = {Ziran Tu and Xiangyong Zeng and Lei Hu and Chunlei Li},
+  title = {A Class of Binomial Permutation Polynomials},
+  journal = {CoRR},
+  year = {2013},
+  volume = {abs/1310.0337},
+  url = {http://arxiv.org/abs/1310.0337}
+}
+</pre></td>
+</tr>
+<tr id="DBLP:journals/dcc/LiZTL13" class="entry">
+	<td>Li, J., Zeng, X., Tang, X. and Li, C.</td>
+	<td>A family of quadriphase sequences of period 4(2<sup>n</sup>-1) with low correlation and large linear span <p class="infolinks">[<a href="javascript:toggleInfo('DBLP:journals/dcc/LiZTL13','abstract')">Abstract</a>] [<a href="javascript:toggleInfo('DBLP:journals/dcc/LiZTL13','bibtex')">BibTeX</a>]</p></td>
+	<td>2013</td>
+	<td>Des. Codes Cryptogr.<br/>Vol. 67(1), pp. 19-35&nbsp;</td>
+	<td>article</td>
+	<td><a href="https://doi.org/10.1007/s10623-011-9583-0">DOI</a> <a href="https://doi.org/10.1007/s10623-011-9583-0">URL</a>&nbsp;</td>
+</tr>
+<tr id="abs_DBLP:journals/dcc/LiZTL13" class="abstract noshow">
+	<td colspan="6"><b>Abstract</b>: In this paper, a new family of quadriphase sequences with period 4(2n − 1) is proposed for n = me, where m is an odd integer. The correlation values of the family, their distribution, and the linear spans of the proposed sequences are completely determined under two situations.</td>
+</tr>
+<tr id="bib_DBLP:journals/dcc/LiZTL13" class="bibtex noshow">
+<td colspan="6"><b>BibTeX</b>:
+<pre>
+@article{DBLP:journals/dcc/LiZTL13,
+  author = {Jie Li and Xiangyong Zeng and Xiaohu Tang and Chunlei Li},
+  title = {A family of quadriphase sequences of period 4(2 n - 1) with low correlation and large linear span},
+  journal = {Des. Codes Cryptogr.},
+  year = {2013},
+  volume = {67},
+  number = {1},
+  pages = {19--35},
+  url = {https://doi.org/10.1007/s10623-011-9583-0},
+  doi = {https://doi.org/10.1007/s10623-011-9583-0}
+}
+</pre></td>
+</tr>
+<tr id="DBLP:conf/isit/LiH12" class="entry">
+	<td>Li, C. and Helleseth, T.</td>
+	<td>New nonbinary sequence families with low correlation and large linear span <p class="infolinks">[<a href="javascript:toggleInfo('DBLP:conf/isit/LiH12','abstract')">Abstract</a>] [<a href="javascript:toggleInfo('DBLP:conf/isit/LiH12','bibtex')">BibTeX</a>]</p></td>
+	<td>2012</td>
+	<td>Proceedings of the 2012 IEEE International Symposium on Information Theory, ISIT 2012, Cambridge, MA, USA, July 1-6, 2012, pp. 1411-1415&nbsp;</td>
+	<td>inproceedings</td>
+	<td><a href="https://doi.org/10.1109/ISIT.2012.6283494">DOI</a> <a href="https://doi.org/10.1109/ISIT.2012.6283494">URL</a>&nbsp;</td>
+</tr>
+<tr id="abs_DBLP:conf/isit/LiH12" class="abstract noshow">
+	<td colspan="6"><b>Abstract</b>: In this paper, for an odd prime p and positive integers n, m and e, we present two families of p-ary sequences from decimated Helleseth-Gong sequences and m-sequences and examine their correlation properties. The proposed families of sequences possess low correlation and large linear complexity properties.</td>
+</tr>
+<tr id="bib_DBLP:conf/isit/LiH12" class="bibtex noshow">
+<td colspan="6"><b>BibTeX</b>:
+<pre>
+@inproceedings{DBLP:conf/isit/LiH12,
+  author = {Chunlei Li and Tor Helleseth},
+  title = {New nonbinary sequence families with low correlation and large linear span},
+  booktitle = {Proceedings of the 2012 IEEE International Symposium on Information Theory, ISIT 2012, Cambridge, MA, USA, July 1-6, 2012},
+  publisher = {IEEE},
+  year = {2012},
+  pages = {1411--1415},
+  url = {https://doi.org/10.1109/ISIT.2012.6283494},
+  doi = {https://doi.org/10.1109/ISIT.2012.6283494}
+}
+</pre></td>
+</tr>
+<tr id="DBLP:conf/seta/GongHHL12" class="entry">
+	<td>Gong, G., Helleseth, T., Hu, H. and Li, C.</td>
+	<td>New Three-Valued Walsh Transforms from Decimations of Helleseth-Gong Sequences <p class="infolinks">[<a href="javascript:toggleInfo('DBLP:conf/seta/GongHHL12','abstract')">Abstract</a>] [<a href="javascript:toggleInfo('DBLP:conf/seta/GongHHL12','bibtex')">BibTeX</a>]</p></td>
+	<td>2012</td>
+	<td><br/>Vol. 7280Sequences and Their Applications - SETA 2012 - 7th International Conference, Waterloo, ON, Canada, June 4-8, 2012. Proceedings, pp. 327-337&nbsp;</td>
+	<td>inproceedings</td>
+	<td><a href="https://doi.org/10.1007/978-3-642-30615-0%5C_%7B3%7D%7B0%7D">DOI</a> <a href="https://doi.org/10.1007/978-3-642-30615-0\_30">URL</a>&nbsp;</td>
+</tr>
+<tr id="abs_DBLP:conf/seta/GongHHL12" class="abstract noshow">
+	<td colspan="6"><b>Abstract</b>: Recently, starting from Helleseth-Gong sequences, Gong, Helleseth, and Hu found many decimation numbers which yield three-valued Walsh transforms by computer search. They proved two cases. In this paper, we prove two more cases with new observations.</td>
+</tr>
+<tr id="bib_DBLP:conf/seta/GongHHL12" class="bibtex noshow">
+<td colspan="6"><b>BibTeX</b>:
+<pre>
+@inproceedings{DBLP:conf/seta/GongHHL12,
+  author = {Guang Gong and Tor Helleseth and Honggang Hu and Chunlei Li},
+  title = {New Three-Valued Walsh Transforms from Decimations of Helleseth-Gong Sequences},
+  booktitle = {Sequences and Their Applications - SETA 2012 - 7th International Conference, Waterloo, ON, Canada, June 4-8, 2012. Proceedings},
+  publisher = {Springer},
+  year = {2012},
+  volume = {7280},
+  pages = {327--337},
+  url = {https://doi.org/10.1007/978-3-642-30615-0_30},
+  doi = {https://doi.org/10.1007/978-3-642-30615-0%5C_%7B3%7D%7B0%7D}
+}
+</pre></td>
+</tr>
+<tr id="DBLP:journals/ieicet/LiLP12" class="entry">
+	<td>Li, C., Li, N. and Parker, M.G.</td>
+	<td>Complementary Sequence Pairs of Types II and III <p class="infolinks">[<a href="javascript:toggleInfo('DBLP:journals/ieicet/LiLP12','bibtex')">BibTeX</a>]</p></td>
+	<td>2012</td>
+	<td>IEICE Trans. Fundam. Electron. Commun. Comput. Sci.<br/>Vol. 95-A(11), pp. 1819-1826&nbsp;</td>
+	<td>article</td>
+	<td><a href="https://doi.org/10.1587/transfun.E95.A.1819">DOI</a> <a href="https://doi.org/10.1587/transfun.E95.A.1819">URL</a>&nbsp;</td>
+</tr>
+<tr id="bib_DBLP:journals/ieicet/LiLP12" class="bibtex noshow">
+<td colspan="6"><b>BibTeX</b>:
+<pre>
+@article{DBLP:journals/ieicet/LiLP12,
+  author = {Chunlei Li and Nian Li and Matthew Geoffrey Parker},
+  title = {Complementary Sequence Pairs of Types II and III},
+  journal = {IEICE Trans. Fundam. Electron. Commun. Comput. Sci.},
+  year = {2012},
+  volume = {95-A},
+  number = {11},
+  pages = {1819--1826},
+  url = {https://doi.org/10.1587/transfun.E95.A.1819},
+  doi = {https://doi.org/10.1587/transfun.E95.A.1819}
+}
+</pre></td>
+</tr>
+<tr id="DBLP:journals/tit/JiaZHL12" class="entry">
+	<td>Jia, W., Zeng, X., Helleseth, T. and Li, C.</td>
+	<td>A Class of Binomial Bent Functions Over the Finite Fields of Odd Characteristic <p class="infolinks">[<a href="javascript:toggleInfo('DBLP:journals/tit/JiaZHL12','abstract')">Abstract</a>] [<a href="javascript:toggleInfo('DBLP:journals/tit/JiaZHL12','bibtex')">BibTeX</a>]</p></td>
+	<td>2012</td>
+	<td>IEEE Trans. Inf. Theory<br/>Vol. 58(9), pp. 6054-6063&nbsp;</td>
+	<td>article</td>
+	<td><a href="https://doi.org/10.1109/TIT.2012.2199736">DOI</a> <a href="https://doi.org/10.1109/TIT.2012.2199736">URL</a>&nbsp;</td>
+</tr>
+<tr id="abs_DBLP:journals/tit/JiaZHL12" class="abstract noshow">
+	<td colspan="6"><b>Abstract</b>: This paper studies a class of binomial functions over the finite fields of odd characteristic and characterizes their bentness in terms of the Kloosterman sums. Numerical results show that the proposed class contains bent functions that are affinely inequivalent to all known monomial and binomial ones.</td>
+</tr>
+<tr id="bib_DBLP:journals/tit/JiaZHL12" class="bibtex noshow">
+<td colspan="6"><b>BibTeX</b>:
+<pre>
+@article{DBLP:journals/tit/JiaZHL12,
+  author = {Wenjie Jia and Xiangyong Zeng and Tor Helleseth and Chunlei Li},
+  title = {A Class of Binomial Bent Functions Over the Finite Fields of Odd Characteristic},
+  journal = {IEEE Trans. Inf. Theory},
+  year = {2012},
+  volume = {58},
+  number = {9},
+  pages = {6054--6063},
+  url = {https://doi.org/10.1109/TIT.2012.2199736},
+  doi = {https://doi.org/10.1109/TIT.2012.2199736}
+}
+</pre></td>
+</tr>
+<tr id="DBLP:journals/chinaf/ZhangLT11" class="entry">
+	<td>Zhang, H., Li, C. and Tang, M.</td>
+	<td>Capability of evolutionary cryptosystems against differential cryptanalysis <p class="infolinks">[<a href="javascript:toggleInfo('DBLP:journals/chinaf/ZhangLT11','bibtex')">BibTeX</a>]</p></td>
+	<td>2011</td>
+	<td>Sci. China Inf. Sci.<br/>Vol. 54(10), pp. 1991-2000&nbsp;</td>
+	<td>article</td>
+	<td><a href="https://doi.org/10.1007/s11432-011-4430-5">DOI</a> <a href="https://doi.org/10.1007/s11432-011-4430-5">URL</a>&nbsp;</td>
+</tr>
+<tr id="bib_DBLP:journals/chinaf/ZhangLT11" class="bibtex noshow">
+<td colspan="6"><b>BibTeX</b>:
+<pre>
+@article{DBLP:journals/chinaf/ZhangLT11,
+  author = {Huanguo Zhang and Chunlei Li and Ming Tang},
+  title = {Capability of evolutionary cryptosystems against differential cryptanalysis},
+  journal = {Sci. China Inf. Sci.},
+  year = {2011},
+  volume = {54},
+  number = {10},
+  pages = {1991--2000},
+  url = {https://doi.org/10.1007/s11432-011-4430-5},
+  doi = {https://doi.org/10.1007/s11432-011-4430-5}
+}
+</pre></td>
+</tr>
+<tr id="DBLP:journals/chinaf/ZhangLT11a" class="entry">
+	<td>Zhang, H., Li, C. and Tang, M.</td>
+	<td>Evolutionary cryptography against multidimensional linear cryptanalysis <p class="infolinks">[<a href="javascript:toggleInfo('DBLP:journals/chinaf/ZhangLT11a','bibtex')">BibTeX</a>]</p></td>
+	<td>2011</td>
+	<td>Sci. China Inf. Sci.<br/>Vol. 54(12), pp. 2565-2577&nbsp;</td>
+	<td>article</td>
+	<td><a href="https://doi.org/10.1007/s11432-011-4494-2">DOI</a> <a href="https://doi.org/10.1007/s11432-011-4494-2">URL</a>&nbsp;</td>
+</tr>
+<tr id="bib_DBLP:journals/chinaf/ZhangLT11a" class="bibtex noshow">
+<td colspan="6"><b>BibTeX</b>:
+<pre>
+@article{DBLP:journals/chinaf/ZhangLT11a,
+  author = {Huanguo Zhang and Chunlei Li and Ming Tang},
+  title = {Evolutionary cryptography against multidimensional linear cryptanalysis},
+  journal = {Sci. China Inf. Sci.},
+  year = {2011},
+  volume = {54},
+  number = {12},
+  pages = {2565--2577},
+  url = {https://doi.org/10.1007/s11432-011-4494-2},
+  doi = {https://doi.org/10.1007/s11432-011-4494-2}
+}
+</pre></td>
+</tr>
+<tr id="DBLP:journals/chinaf/WangZWZLZ10" class="entry">
+	<td>Wang, H., Zhang, H., Wu, Q., Zhang, Y., Li, C. and Zhang, X.</td>
+	<td>Design theory and method of multivariate hash function <p class="infolinks">[<a href="javascript:toggleInfo('DBLP:journals/chinaf/WangZWZLZ10','bibtex')">BibTeX</a>]</p></td>
+	<td>2010</td>
+	<td>Sci. China Inf. Sci.<br/>Vol. 53(10), pp. 1977-1987&nbsp;</td>
+	<td>article</td>
+	<td><a href="https://doi.org/10.1007/s11432-010-4062-1">DOI</a> <a href="https://doi.org/10.1007/s11432-010-4062-1">URL</a>&nbsp;</td>
+</tr>
+<tr id="bib_DBLP:journals/chinaf/WangZWZLZ10" class="bibtex noshow">
+<td colspan="6"><b>BibTeX</b>:
+<pre>
+@article{DBLP:journals/chinaf/WangZWZLZ10,
+  author = {Houzhen Wang and Huanguo Zhang and Qianhong Wu and Yu Zhang and Chunlei Li and Xinyu Zhang},
+  title = {Design theory and method of multivariate hash function},
+  journal = {Sci. China Inf. Sci.},
+  year = {2010},
+  volume = {53},
+  number = {10},
+  pages = {1977--1987},
+  url = {https://doi.org/10.1007/s11432-010-4062-1},
+  doi = {https://doi.org/10.1007/s11432-010-4062-1}
+}
+</pre></td>
+</tr>
+<tr id="DBLP:journals/dcc/CarletZLH09" class="entry">
+	<td>Carlet, C., Zeng, X., Li, C. and Hu, L.</td>
+	<td>Further properties of several classes of Boolean functions with optimum algebraic immunity <p class="infolinks">[<a href="javascript:toggleInfo('DBLP:journals/dcc/CarletZLH09','abstract')">Abstract</a>] [<a href="javascript:toggleInfo('DBLP:journals/dcc/CarletZLH09','bibtex')">BibTeX</a>]</p></td>
+	<td>2009</td>
+	<td>Des. Codes Cryptogr.<br/>Vol. 52(3), pp. 303-338&nbsp;</td>
+	<td>article</td>
+	<td><a href="https://doi.org/10.1007/s10623-009-9284-0">DOI</a> <a href="https://doi.org/10.1007/s10623-009-9284-0">URL</a>&nbsp;</td>
+</tr>
+<tr id="abs_DBLP:journals/dcc/CarletZLH09" class="abstract noshow">
+	<td colspan="6"><b>Abstract</b>: Based on a method proposed by the first author, several classes of balanced Boolean functions with optimum algebraic immunity are constructed, and they have nonlinearities significantly larger than the previously best known nonlinearity of functions with optimal algebraic immunity. By choosing suitable parameters, the constructed n-variable functions have high nonlinearity. The algebraic degrees of the constructed functions are also discussed.</td>
+</tr>
+<tr id="bib_DBLP:journals/dcc/CarletZLH09" class="bibtex noshow">
+<td colspan="6"><b>BibTeX</b>:
+<pre>
+@article{DBLP:journals/dcc/CarletZLH09,
+  author = {Claude Carlet and Xiangyong Zeng and Chunlei Li and Lei Hu},
+  title = {Further properties of several classes of Boolean functions with optimum algebraic immunity},
+  journal = {Des. Codes Cryptogr.},
+  year = {2009},
+  volume = {52},
+  number = {3},
+  pages = {303--338},
+  url = {https://doi.org/10.1007/s10623-009-9284-0},
+  doi = {https://doi.org/10.1007/s10623-009-9284-0}
+}
+</pre></td>
+</tr>
+</tbody>
+</table>
+
+
+<div id="footer">
+<div id="footer-text">
+Page generated 2022-09-13 19:19:06 CEST, by <a href="http://jemdoc.jaboc.net/">jemdoc</a>.
+</div>
+</div>
+</td>
+</tr>
+</table>
+</body>
+</html>
